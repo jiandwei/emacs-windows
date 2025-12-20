@@ -2501,8 +2501,6 @@
                                   holiday-other-holidays)))
 #+end_src
 
-* 结束语
-
 #+begin_src emacs-lisp
 (provide 'config)
 #+end_src

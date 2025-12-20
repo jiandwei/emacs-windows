@@ -20,3 +20,4 @@ dist/
 /elpa/*
 /eln-cache/*
 config.el
+tramp

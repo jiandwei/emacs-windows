@@ -835,17 +835,18 @@
 ** Format-all
 
 #+begin_src emacs-lisp
-  (use-package format-all
-    :ensure t
-    :diminish
-    :hook ((LaTeX-mode prog-mode org-src-mode) . format-all-mode)
-    :config
-    (setq format-all-default-formatters '(("LaTeX" auctex)
-                                          ("Emacs Lisp" emacs-lisp)
-                                          ("R" styler)
-                                          ("C" astyle)
-                                          ("BibTeX" emacs-bibtex)))
-    (add-hook 'format-all-mode-hook 'format-all-ensure-formatter))
+    (use-package format-all
+      :ensure t
+      :defer t
+      :diminish
+      :hook ((LaTeX-mode ess-r-mode c-mode org-src-mode) . format-all-mode)
+      :config
+      (setq format-all-default-formatters '(("LaTeX" auctex)
+                                            ("Emacs Lisp" emacs-lisp)
+                                            ("R" styler)
+                                            ("C" astyle)
+                                            ("BibTeX" emacs-bibtex)))
+      (add-hook 'format-all-mode-hook 'format-all-ensure-formatter))
 #+end_src
 
 * 高亮与反馈

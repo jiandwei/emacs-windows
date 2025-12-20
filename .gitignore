@@ -16,6 +16,7 @@ dist/
 # Undo-tree save-files
 *.~undo-tree
 # 不使用一些内置文件
-./etc/*
-./elpa/*
-./eln-cache/*
+/etc/*
+/elpa/*
+/eln-cache/*
+config.el

@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: inf
+# key: ooo
+# condition: (and (texmathp) 'auto)
+# group: math
+# --
+\\infty $0

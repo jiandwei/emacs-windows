@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# name: example
+# key: <example
+# condition: t
+# --
+#+ATTR_LATEX: :environment example
+#+begin_example
+$1
+#+end_example
+$0

@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# name: definition
+# key: <defn
+# condition: t
+# --
+#+ATTR_LATEX: :environment definition :options [$1]
+#+begin_definition
+$2
+#+end_definition
+$0

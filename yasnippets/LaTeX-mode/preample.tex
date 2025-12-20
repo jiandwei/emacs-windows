@@ -1,0 +1,51 @@
+\documentclass{article}
+% 这里是使用的一些包
+\usepackage{amsmath, amsthm, amssymb, amsfonts}
+\usepackage{thmtools}
+\usepackage{graphicx}
+\usepackage{setspace}
+\usepackage{geometry}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{framed}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{tcolorbox}
+% 定义的一些颜色
+\colorlet{LightGray}{White!90!Periwinkle}
+\colorlet{LightOrange}{Orange!16}
+\colorlet{LightGreen}{Green!15}
+
+\newcommand{\HRule}[1]{\rule{\linewidth}{#1}}
+% 声明的一些定理以及一些东西
+\declaretheoremstyle[name=Theorem,]{thmsty}
+\declaretheorem[style=thmsty]{theorem}
+\tcolorboxenvironment{theorem}{title=Theorem,colframe=red!75!black,colback=LightGray}
+
+\declaretheoremstyle[name=Proposition,]{prosty}
+\declaretheorem[style=prosty]{proposition}
+\tcolorboxenvironment{proposition}{colback=LightOrange}
+
+\declaretheoremstyle[name=Principle,]{prcpsty}
+\declaretheorem[style=prcpsty]{principle}
+\tcolorboxenvironment{principle}{colback=LightGreen}
+
+\declaretheoremstyle[name=Example,]{examsty}
+\declaretheorem[style=examsty]{example}
+\tcolorboxenvironment{example}{title=Example,colframe=red!55!black!50!yellow!50!,colback=red!50!green!20!blue!30}
+
+\declaretheoremstyle[name=Remark,]{remarksty}
+\declaretheorem[style=remarksty]{remark}
+\tcolorboxenvironment{remark}{title=Remark,colframe=red!75!black,colback=red!40!green!30!blue!30}
+% 边缘的一些东西
+\setstretch{1.2}
+\geometry{
+    textheight=9in,
+    textwidth=5.5in,
+    top=1in,
+    headheight=12pt,
+    headsep=25pt,
+    footskip=30pt
+}
+

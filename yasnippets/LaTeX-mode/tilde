@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: tilde
+# key: tilde
+# expand-env: ((argument (quote t)))
+# condition: (and (texmathp) 'auto)
+# group: math
+# --
+`(condition-case nil (progn (backward-sexp) (kill-sexp) (delete-char 1)) (error (setq argument 'nil)))`\\tilde{`(if argument (current-kill 0))`}$0

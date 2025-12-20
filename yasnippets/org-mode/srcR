@@ -1,0 +1,6 @@
+# key: <jr
+# name: src-R
+# --
+#+BEGIN_SRC R
+$0
+#+END_SRC

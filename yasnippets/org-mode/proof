@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# name: <proof
+# uuid:
+# key: proof
+# condition: t
+# --
+#+begin_proof
+$1
+#+end_proof
+$0

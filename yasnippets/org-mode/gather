@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: gather
+# key: gather
+# --
+\begin{gather}
+\label{$0}
+$1
+\end{gather}

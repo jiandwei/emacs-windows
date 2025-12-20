@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: xrightarrow
+# key: xra
+# condition: (and (texmathp) 'auto)
+# group: maht
+# --
+\\xrightarrow{${1:p}} $0

@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: min
+# key: min
+# group: math
+# condition: (and (texmathp) 'auto)
+# --
+\min_{$1} $0

@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: approx
+# key: ~=
+# condition: (and (texmathp) 'auto)
+# group: math
+# --
+\\approx 

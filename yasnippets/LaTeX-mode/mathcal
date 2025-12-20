@@ -1,0 +1,7 @@
+# key: cal
+# name: mathcal
+# expand-env: ((numerator (quote t)))
+# condition: (and (texmathp) (quote auto))
+# group: math
+# --
+`(condition-case nil (save-excursion (backward-sexp) (kill-sexp) (delete-char 1)) (error (setq numerator 'nil)))`\\mathcal{`(if numerator (current-kill 0))`}$0

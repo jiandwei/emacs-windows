@@ -1,0 +1,66 @@
+# -*- mode: snippet -*-
+# name: course-paper
+# key: paper
+# --
+#+TITLE: ${1:论文标题}
+#+AUTHOR: ${2:姓名}
+#+DATE: `(format-time-string "%Y-%m-%d")`
+#+EMAIL: ${3:邮箱}
+#+DESCRIPTION: ${4:简短描述}
+
+#+PROPERTY: header-args :eval never
+
+#+OPTIONS: toc:t num:t
+#+LANGUAGE: zh
+#+LATEX_CLASS: ctexart
+
+#+LATEX_HEADER: \usepackage{graphicx}
+#+LATEX_HEADER: \usepackage{amsmath,amssymb}
+#+LATEX_HEADER: \usepackage[backend=biber,style=gb7714-2015]{biblatex}
+#+LATEX_HEADER: \addbibresource{${5:$(if (file-exists-p "refs.bib") "refs.bib" "参考文献.bib")}}
+
+#+BEGIN_COMMENT
+课程信息
+课程名称: ${6:课程名称}
+授课教师: ${7:教师姓名}
+学号: ${8:学号}
+专业: ${9:专业}
+提交日期: ${10:提交日期}
+#+END_COMMENT
+
+* 摘要
+:PROPERTIES:
+:UNNUMBERED: t
+:END:
+#+BEGIN_QUOTE
+${11:在这里输入中文摘要...}
+#+END_QUOTE
+
+* 关键词
+${12:关键词1, 关键词2, 关键词3}
+
+* 引言
+${13:研究背景、问题陈述、论文结构等...}
+
+* 相关工作/文献综述
+${14:相关研究回顾...}
+
+* 研究方法/主体内容
+${15:论文核心内容...}
+
+* 实验/案例分析
+${16:实验结果或案例分析...}
+
+* 结论
+${17:总结、限制、未来工作...}
+
+* 参考文献
+#+LATEX: \printbibliography[title={参考文献}]
+
+#+BEGIN_COMMENT
+使用说明:
+1. 保存为 ~/.emacs.d/yasnippets/org-mode/paper 或对应目录
+2. 在 org 文件中输入 "paper" + TAB 触发
+3. 按 TAB 键跳转填充各个字段
+4. 需要安装 gb7714-2015 宏包支持中文参考文献
+#+END_COMMENT

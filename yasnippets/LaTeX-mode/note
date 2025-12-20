@@ -1,0 +1,31 @@
+# -*- mode: snippet -*-
+# name: note
+# key: note
+# --
+\\input{/home/wei/.config/emacs/yasnippets/LaTeX-mode/preample.tex}
+
+
+\\begin{document}
+\\title{ \\normalsize \\textsc{}
+  \\\ [2.0cm]
+  \\HRule{1.5pt} \\\
+  \\LARGE \\textbf{\\uppercase{${1:title}} \\HRule{2.0pt} \\\ [0.6cm]
+    \\LARGE{} \\vspace*{10\\baselineskip}} } \\date{\\today}
+\\author{\\textbf{Author} \\\
+  Jiawei Bi \\\
+  Dalian \\\
+}
+
+\\maketitle
+\\newpage
+
+\\tableofcontents
+\\newpage
+
+% ------------------------------------------------------------------------------
+
+\\section{${2:section}}
+
+$0
+
+\\end{document}

@@ -1,0 +1,40 @@
+# -*- mode: snippet -*-
+# contributor: Claudio Marforio <marforio@gmail.com>
+# key: beamer
+# group: skeleton
+# name: \documentclass{beamer}
+...
+# --
+
+
+\documentclass[xcolor=dvipsnames]
+{beamer}
+\usepackage{graphicx,subfigure,url,amsmath,calligra}
+% example themes
+\usetheme{CambridgeUS}
+\usecolortheme{seahorse}
+\usecolortheme{rose}
+\title{${1:`(file-name-base buffer-file-name)
+`}}
+\author{${2:author}}
+\begin{document}
+\frame[plain]
+{\titlepage}
+\begin{frame}
+[plain]
+{Outline}
+\tableofcontents
+\end{frame}
+\begin{frame}
+\frametitle{${3:Frame Title$(capitalize yas-text)}}
+$4
+\end{frame}
+$0
+
+\section*{}
+\begin{frame}
+\begin{center}
+{\Huge \calligra Thanks for your attention!}
+\end{center}
+\end{frame}
+\end{document}

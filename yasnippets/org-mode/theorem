@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# name: theorem
+# key: <theorem
+# condition: t
+# --
+#+ATTR_LATEX: :environment theorem
+#+begin_theorem
+$1
+#+end_theorem
+$0

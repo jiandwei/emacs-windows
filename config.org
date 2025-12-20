@@ -2375,7 +2375,6 @@
 (use-package gptel-magit
   :ensure t
   :hook (magit-mode . gptel-magit-install))
-
 (use-package agent-shell
   :ensure t
   :diminish agent-shell-ui-mode)

@@ -288,8 +288,7 @@
     (load custom-file 'noerror 'nomessage)
     (setq warning-minimum-level :emergency)
     (setq default-directory "C:/Users/wei/Documents/")
-(setenv "EDITOR" "d:/Apps/Scoop/apps/emacs/current/bin/emacsclient.exe -c -n")
-(setenv "GIT_EDITOR" (getenv "EDITOR"))
+
     ;; 像素级调整窗口
     (setq window-resize-pixelwise t
           frame-resize-pixelwise t)

@@ -20,7 +20,6 @@
 - [[#工具集成][工具集成]]
 - [[#日历配置][日历配置]]
 
-* 文件头部
 #+begin_src emacs-lisp
   ;;; config.el --- Tangled from config.org -*- lexical-binding: t -*-
   ;;; Commentary:
@@ -63,12 +62,12 @@
 
   ;; Server 模式
   (use-package server
-    :defer 2
+    :defer t
     :config (server-mode t))
 
   ;; 保存位置
   (use-package saveplace
-    :defer 2
+    :defer t
     :hook (find-file . save-place-mode)
     :config (setq save-place-file (locate-user-emacs-file "etc/places")))
 
@@ -187,6 +186,7 @@
 
   ;; 主题自动切换
   (use-package circadian
+:after nano-theme
     :ensure t
     :config
     (setq calendar-latitude 46.589310
@@ -212,7 +212,7 @@
     (when (display-graphic-p)
       ;; 英文字体
       (set-face-attribute 'default nil
-                          :font "Iosevka Term"
+                          :font "IosevkaTerm NF"
                           :height 120)
       ;; 中国字体
       (cl-loop for font in '("Sarasa Mono SC" "LXGW Neo Xihei" "LXGW WenKai Mono" "WenQuanYi Micro Hei Mono"
@@ -284,11 +284,12 @@
     (dolist (dir '("etc/" "etc/server/" "etc/auto-save-list/" "etc/org-persist/" "etc/transient/" "etc/persistent-scratch/"))
       (make-directory (locate-user-emacs-file dir) t))
 
-    (setq custom-file (locate-user-emacs-file "/etc/custom-vars.el"))
+    (setq custom-file (locate-user-emacs-file "etc/custom-vars.el"))
     (load custom-file 'noerror 'nomessage)
     (setq warning-minimum-level :emergency)
     (setq default-directory "C:/Users/wei/Documents/")
-
+(setenv "EDITOR" "d:/Apps/Scoop/apps/emacs/current/bin/emacsclient.exe -c -n")
+(setenv "GIT_EDITOR" (getenv "EDITOR"))
     ;; 像素级调整窗口
     (setq window-resize-pixelwise t
           frame-resize-pixelwise t)
@@ -372,7 +373,6 @@
 #+end_src
 
 * 编辑增强
-
 ** 删除选中文本
 
 #+begin_src emacs-lisp
@@ -385,10 +385,11 @@
 
 #+begin_src emacs-lisp
   (use-package avy
+    :defer t
     :ensure t
     :bind (("C-:" . avy-goto-char)
            ("C-'" . avy-goto-char-2))
-    :hook (after-init . avy-setup-default)
+    ;;:hook (after-init . avy-setup-default)
     :config
     (setq avy-all-windows nil
           avy-all-windows-alt t
@@ -453,14 +454,15 @@
 ** Orderless 匹配
 
 #+begin_src emacs-lisp
-  (use-package orderless
-    :ensure t
-    :after vertico
-    :defer t
-    :custom
-    (completion-styles '(orderless basic))
-    (completion-category-overrides '((file (styles basic partial-completion))))
-    (orderless-component-separator #'orderless-escapable-split-on-space))
+    (use-package orderless
+      :ensure t
+      :after vertico
+      :defer t
+      :custom
+      (completion-styles '(orderless basic))
+      (completion-category-overrides '((file (styles basic partial-completion))))
+      (completion-category-defaults nil) ;; Disable defaults, use our settings    
+      (orderless-component-separator #'orderless-escapable-split-on-space))
 #+end_src
 
 ** 拼音支持
@@ -666,83 +668,88 @@
 ** Corfu 自动补全
 
 #+begin_src emacs-lisp
-  (use-package corfu
-    :ensure t
-    :autoload (corfu-quit consult-completion-in-region)
-    :functions (persistent-scratch-save corfu-move-to-minibuffer)
-    :custom
-    (corfu-cycle t)
-    (corfu-on-exact-match nil)
-    (corfu-preselect 'prompt)
-    (corfu-auto t)
-    (corfu-auto-prefix 2)
-    (corfu-count 12)
-    (corfu-preview-current nil)
-    (corfu-auto-delay 0.2)
-    (corfu-popupinfo-delay '(0.4 . 0.2))
-    (global-corfu-modes '((not erc-mode
-                               circe-mode
-                               help-mode
-                               gud-mode
-                               vterm-mode)
-                          t))
-    :custom-face
-    (corfu-border ((t (:inherit region :background unspecified))))
-    :bind (:map corfu-map
-           ("TAB" . corfu-next)
-           ([tab] . corfu-next)
-           ("S-TAB" . corfu-previous)
-           ([backtab] . corfu-previous)
-           ("RET" . corfu-insert))
-    :hook ((after-init . global-corfu-mode)
-           (global-corfu-mode . corfu-popupinfo-mode)
-           (global-corfu-mode . corfu-history-mode))
-    :config
-    (add-hook 'before-save-hook #'corfu-quit)
-    (advice-add #'persistent-scratch-save :before #'corfu-quit)
+    (use-package corfu
+      :ensure t
+      :autoload (corfu-quit consult-completion-in-region)
+      :functions (persistent-scratch-save corfu-move-to-minibuffer)
+      :custom
+      (corfu-cycle t)
+      (corfu-on-exact-match nil)
+      (corfu-preselect 'prompt)
+      (corfu-auto t)
+      (corfu-auto-prefix 2)
+      (corfu-count 12)
+      (corfu-preview-current nil)
+      (corfu-auto-delay 0.2)
+      (corfu-popupinfo-delay '(0.4 . 0.2))
+      (global-corfu-modes '((not erc-mode
+                                 circe-mode
+                                 help-mode
+                                 gud-mode
+                                 vterm-mode)
+                            t))
+      :custom-face
+      (corfu-border ((t (:inherit region :background unspecified))))
+      :bind (:map corfu-map
+             ("TAB" . corfu-next)
+             ([tab] . corfu-next)
+             ("S-TAB" . corfu-previous)
+             ([backtab] . corfu-previous)
+             ("RET" . corfu-insert))
+      :hook ((after-init . global-corfu-mode)
+             (global-corfu-mode . corfu-popupinfo-mode)
+             (global-corfu-mode . corfu-history-mode))
+      :config
+      (add-hook 'before-save-hook #'corfu-quit)
+      (advice-add #'persistent-scratch-save :before #'corfu-quit)
+      (add-hook 'corfu-mode-hook
+            (lambda ()
+              ;; Settings only for Corfu
+              (setq-local completion-styles '(basic)
+                          completion-category-overrides nil
+                          completion-category-defaults nil)))
+      (defun corfu-move-to-minibuffer ()
+        (interactive)
+        (pcase completion-in-region--data
+          (`(,beg ,end ,table ,pred ,extras)
+           (let ((completion-extra-properties extras)
+                 completion-cycle-threshold completion-cycling)
+             (consult-completion-in-region beg end table pred)))))
+      (keymap-set corfu-map "M-m" #'corfu-move-to-minibuffer)
+      (add-to-list 'corfu-continue-commands #'corfu-move-to-minibuffer))
 
-    (defun corfu-move-to-minibuffer ()
-      (interactive)
-      (pcase completion-in-region--data
-        (`(,beg ,end ,table ,pred ,extras)
-         (let ((completion-extra-properties extras)
-               completion-cycle-threshold completion-cycling)
-           (consult-completion-in-region beg end table pred)))))
-    (keymap-set corfu-map "M-m" #'corfu-move-to-minibuffer)
-    (add-to-list 'corfu-continue-commands #'corfu-move-to-minibuffer))
+    (use-package emacs
+      :custom
+      (text-mode-ispell-word-completion nil)
+      (read-extended-command-predicate #'command-completion-default-include-p))
 
-  (use-package emacs
-    :custom
-    (tab-always-indent 'complete)
-    (text-mode-ispell-word-completion nil)
-    (read-extended-command-predicate #'command-completion-default-include-p))
-
-  (use-package nerd-icons-corfu
-    :ensure t
-    :autoload nerd-icons-corfu-formatter
-    :after corfu
-    :init (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
+    (use-package nerd-icons-corfu
+      :ensure t
+      :autoload nerd-icons-corfu-formatter
+      :after corfu
+      :init (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
 #+end_src
 
 ** Cape 扩展
 
 #+begin_src emacs-lisp
-  (use-package cape
-    :ensure t
-    :commands (cape-file cape-elisp-block cape-keyword)
-    :autoload (cape-wrap-noninterruptible cape-wrap-nonexclusive cape-wrap-buster cape-wrap-silent)
-    :init
-    (add-to-list 'completion-at-point-functions #'cape-file)
-    (add-to-list 'completion-at-point-functions #'cape-elisp-block)
-    (add-to-list 'completion-at-point-functions #'cape-keyword)
+    (use-package cape
+      :ensure t
+      :commands (cape-file cape-elisp-block cape-keyword)
+      :autoload (cape-wrap-noninterruptible cape-wrap-nonexclusive cape-wrap-buster cape-wrap-silent)
+      :init
+      (add-to-list 'completion-at-point-functions #'cape-file)
+      (add-to-list 'completion-at-point-functions #'cape-tex)
+      (add-to-list 'completion-at-point-functions #'cape-elisp-block)
+      (add-to-list 'completion-at-point-functions #'cape-keyword)
 
-    (advice-add 'lsp-completion-at-point :around #'cape-wrap-noninterruptible)
-    (advice-add 'lsp-completion-at-point :around #'cape-wrap-nonexclusive)
-    (advice-add 'comint-completion-at-point :around #'cape-wrap-nonexclusive)
-    (advice-add 'eglot-completion-at-point :around #'cape-wrap-buster)
-    (advice-add 'eglot-completion-at-point :around #'cape-wrap-nonexclusive)
-    (advice-add 'pcomplete-completions-at-point :around #'cape-wrap-nonexclusive)
-    (advice-add 'pcomplete-completions-at-point :around #'cape-wrap-silent))
+      (advice-add 'lsp-completion-at-point :around #'cape-wrap-noninterruptible)
+      (advice-add 'lsp-completion-at-point :around #'cape-wrap-nonexclusive)
+      (advice-add 'comint-completion-at-point :around #'cape-wrap-nonexclusive)
+      (advice-add 'eglot-completion-at-point :around #'cape-wrap-buster)
+      (advice-add 'eglot-completion-at-point :around #'cape-wrap-nonexclusive)
+      (advice-add 'pcomplete-completions-at-point :around #'cape-wrap-nonexclusive)
+      (advice-add 'pcomplete-completions-at-point :around #'cape-wrap-silent))
 #+end_src
 
 ** Yasnippet
@@ -1005,8 +1012,9 @@
 
   (use-package nerd-icons-ibuffer
     :ensure t
+    :after ibuffer
     :hook (ibuffer-mode . nerd-icons-ibuffer-mode)
-    :init (setq nerd-icons-ibuffer-icon t))
+    :config (setq nerd-icons-ibuffer-icon t))
 #+end_src
 
 ** Minibuffer
@@ -1306,138 +1314,141 @@
 ** Denote 笔记系统
 
 #+begin_src emacs-lisp
-      (use-package denote
-        :ensure t
-        :defer t
-        :demand t
-        :custom
-        (denote-file-type 'org)
-        (denote-directory my/denote-root)
-        (denote-signature-prompt nil)
-        (denote-known-keywords
-     '("literature" "research" "thesis" "methodology"
-       "emacs" "config" "programming" "linux"
-       "project" "work" "meeting" "report"
-       "journal" "idea" "reading" "personal"
-       "todo" "draft" "archive"
-       ;; 计量专属
-       "theory" "derivation" "identification" "simulation" "montecarlo" "bootstrap"
-       "estimator" "consistency" "asymptotic" "semiparametric" "nonlinear"
-       "endogeneity" "IV" "GMM" "MLE" "OLS" "RDD" "DiD" "panel" "time-series"
-       "reproduction" "data-cleaning" "robustness" "placebo" "latex-tab"
-       "code-r" "code-stata" "code-python" "code-matlab"))
-        (denote-infer-keywords t)
-        (denote-sort-keywords t)
-        (denote-prompts '(title keywords template))
-        (denote-save-buffers nil)
-        (denote-rename-confirmations '(rewrite-front-matter modify-file-name))
-        (denote-link-fontify t)
-        (denote-date-prompt-use-org-read-date t)
-        (denote-date-format "%Y-%m-%d %a")
-        :hook ((org-mode . denote-fontify-links-mode-maybe)
-               (dired-mode . denote-dired-mode-in-directories))
-        :bind (("C-c n n" . denote)
-               ("C-c n r" . denote-rename-file)
-               ("C-c n d" . denote-dired-rename-files)
-               ("C-c n b" . denote-backlinks)
-               ("C-c n t" . denote-template)
-               :map dired-mode-map
-               ("C-c C-d C-r" . denote-dired-rename-files)
-               ("C-c C-d C-i" . denote-dired-link-marked-notes))
-        :config
-        (denote-rename-buffer-mode 1)
-  (setq denote-templates
-        `((report . "* 摘要\n\n* 引言\n\n* 主体\n** 方法\n** 结果\n\n* 结论\n\n* 参考文献\n\n")
-          (journal . ,(concat "* 今日总结"
+        (use-package denote
+          :ensure t
+          :defer t
+          :demand t
+          :custom
+          (denote-file-type 'org)
+          (denote-directory my/denote-root)
+          (denote-signature-prompt nil)
+          (denote-known-keywords
+       '("literature" "research" "thesis" "methodology"
+         "emacs" "config" "programming" "linux"
+         "project" "work" "meeting" "report"
+         "journal" "idea" "reading" "personal"
+         "todo" "draft" "archive"
+         ;; 计量专属
+         "theory" "derivation" "identification" "simulation" "montecarlo" "bootstrap"
+         "estimator" "consistency" "asymptotic" "semiparametric" "nonlinear"
+         "endogeneity" "IV" "GMM" "MLE" "OLS" "RDD" "DiD" "panel" "time-series"
+         "reproduction" "data-cleaning" "robustness" "placebo" "latex-tab"
+         "code-r" "code-stata" "code-python" "code-matlab"))
+          (denote-infer-keywords t)
+          (denote-sort-keywords t)
+          (denote-prompts '(title keywords template))
+          (denote-save-buffers nil)
+          (denote-rename-confirmations '(rewrite-front-matter modify-file-name))
+          (denote-link-fontify t)
+          (denote-date-prompt-use-org-read-date t)
+          (denote-date-format "%Y-%m-%d %a")
+          :hook ((org-mode . denote-fontify-links-mode-maybe)
+                 (dired-mode . denote-dired-mode-in-directories))
+          :bind (("C-c n n" . denote)
+                 ("C-c n r" . denote-rename-file)
+                 ("C-c n d" . denote-dired-rename-files)
+                 ("C-c n b" . denote-backlinks)
+                 ("C-c n t" . denote-template)
+                 :map dired-mode-map
+                 ("C-c C-d C-r" . denote-dired-rename-files)
+                 ("C-c C-d C-i" . denote-dired-link-marked-notes))
+          :config
+          (denote-rename-buffer-mode 1)
+    (setq denote-templates
+          `((report . "* 摘要\n\n* 引言\n\n* 主体\n** 方法\n** 结果\n\n* 结论\n\n* 参考文献\n\n")
+            (journal . ,(concat "* 今日总结"
+                                "\n\n"
+                                "* 待办事项"
+                                "\n** 已完成"
+                                "\n** 未完成"
+                                "\n\n"
+                                "* 思考与感悟"
+                                "\n\n"))
+            (literature . ,(concat "* 文献信息"
+                                   "\n** 作者"
+                                   "\n** 发表时间"
+                                   "\n** 期刊/会议"
+                                   "\n\n"
+                                   "* 主要内容"
+                                   "\n\n"
+                                   "* 关键观点"
+                                   "\n\n"
+                                   "* 批判性思考"
+                                   "\n\n"
+                                   "* 与已有笔记的关联"
+                                   "\n\n"))
+            (draft . ,(concat "* 大纲"
                               "\n\n"
-                              "* 待办事项"
-                              "\n** 已完成"
-                              "\n** 未完成"
+                              "* 初稿"
                               "\n\n"
-                              "* 思考与感悟"
+                              "* 修改记录"
                               "\n\n"))
-          (literature . ,(concat "* 文献信息"
-                                 "\n** 作者"
-                                 "\n** 发表时间"
-                                 "\n** 期刊/会议"
-                                 "\n\n"
-                                 "* 主要内容"
-                                 "\n\n"
-                                 "* 关键观点"
-                                 "\n\n"
-                                 "* 批判性思考"
-                                 "\n\n"
-                                 "* 与已有笔记的关联"
-                                 "\n\n"))
-          (draft . ,(concat "* 大纲"
-                            "\n\n"
-                            "* 初稿"
-                            "\n\n"
-                            "* 修改记录"
-                            "\n\n"))
-          (theory-econometrics . ,(concat "* 研究问题"
-                                          "\n一句话说明要解决的计量经济学问题。"
-                                          "\n\n"
-                                          "* 理论背景"
-                                          "\n已有文献的关键结果、不足与空白。"
-                                          "\n\n"
-                                          "* 模型设定"
-                                          "\n** 数据结构"
-                                          "\n- 截面 / 面板 / 时间序列"
-                                          "\n- 变量维度 $n,T,p$"
-                                          "\n** 基本假设"
-                                          "\n1. 平稳性"
-                                          "\n2. 矩条件"
-                                          "\n3. 识别条件"
-                                          "\n** 模型表达式"
-                                          "\n#+begin_equation"
-                                          "\ny_{it} = g(X_{it};\\theta_0) + \\varepsilon_{it}"
-                                          "\n#+end_equation"
-                                          "\n\n"
-                                          "* 识别策略"
-                                          "\n描述参数 $\\theta_0$ 的识别路径，必要时给出图示。"
-                                          "\n\n"
-                                          "* 估计量构造"
-                                          "\n** 目标函数"
-                                          "\n#+begin_equation"
-                                          "\n\\hat{\\theta} = \\arg\\min_{\\theta\\in\\Theta} Q_n(\\theta)"
-                                          "\n#+end_equation"
-                                          "\n** 权重矩阵（若 GMM）"
-                                          "\n** 渐进性质"
-                                          "\n- 一致性"
-                                          "\n- 渐进正态"
-                                          "\n- 方差估计"
-                                          "\n\n"
-                                          "* 证明要点"
-                                          "\n用 [[id:20251220T120000][Lemma 1]] 给出一致性的关键中间结论。"
-                                          "\n详细证明见 [[id:20251220T130000][Appendix A]]。"
-                                          "\n\n"
-                                          "* 模拟设计"
-                                          "\n在 [[id:20251220T140000][sim-2025-xxx]] 中给出 DGP、评价指标与表格模板。"
-                                          "\n\n"
-                                          "* 代码片段"
-                                          "\n#+begin_src r :tangle ../code/sim-theory-01.R"
-                                          "\nlibrary(data.table)"
-                                          "\nn <- 1000; iter <- 500"
-                                          "\n#+end_src"
-                                          "\n\n"
-                                          "* 待办"
-                                          "\n- [ ] 检查权重矩阵正定性"
-                                          "\n- [ ] 补充 bootstrap 有效性证明"
-                                          "\n- [ ] 与 [[id:20251220T150000][emp-2025-xxx]] 结果对照"
-                                          "\n\n"
-                                          "* 参考文献"
-                                          "\n用 org-cite 语法插入，@BaiNg2002, @Chernozhukov2018."
-                                          "\n\n")))))
+            (theorey-simulation . ,(concat "* 数据生成过程"
+                                           "\n\n"
+                                           "* 要验证的条件"))
+            (theory-econometrics . ,(concat "* 研究问题"
+                                            "\n一句话说明要解决的计量经济学问题。"
+                                            "\n\n"
+                                            "* 理论背景"
+                                            "\n已有文献的关键结果、不足与空白。"
+                                            "\n\n"
+                                            "* 模型设定"
+                                            "\n** 数据结构"
+                                            "\n- 截面 / 面板 / 时间序列"
+                                            "\n- 变量维度 $n,T,p$"
+                                            "\n** 基本假设"
+                                            "\n1. 平稳性"
+                                            "\n2. 矩条件"
+                                            "\n3. 识别条件"
+                                            "\n** 模型表达式"
+                                            "\n#+begin_equation"
+                                            "\ny_{it} = g(X_{it};\\theta_0) + \\varepsilon_{it}"
+                                            "\n#+end_equation"
+                                            "\n\n"
+                                            "* 识别策略"
+                                            "\n描述参数 $\\theta_0$ 的识别路径，必要时给出图示。"
+                                            "\n\n"
+                                            "* 估计量构造"
+                                            "\n** 目标函数"
+                                            "\n#+begin_equation"
+                                            "\n\\hat{\\theta} = \\arg\\min_{\\theta\\in\\Theta} Q_n(\\theta)"
+                                            "\n#+end_equation"
+                                            "\n** 权重矩阵（若 GMM）"
+                                            "\n** 渐进性质"
+                                            "\n- 一致性"
+                                            "\n- 渐进正态"
+                                            "\n- 方差估计"
+                                            "\n\n"
+                                            "* 证明要点"
+                                            "\n用 [[id:20251220T120000][Lemma 1]] 给出一致性的关键中间结论。"
+                                            "\n详细证明见 [[id:20251220T130000][Appendix A]]。"
+                                            "\n\n"
+                                            "* 模拟设计"
+                                            "\n在 [[id:20251220T140000][sim-2025-xxx]] 中给出 DGP、评价指标与表格模板。"
+                                            "\n\n"
+                                            "* 代码片段"
+                                            "\n#+begin_src r :tangle ../code/sim-theory-01.R"
+                                            "\nlibrary(data.table)"
+                                            "\nn <- 1000; iter <- 500"
+                                            "\n#+end_src"
+                                            "\n\n"
+                                            "* 待办"
+                                            "\n- [ ] 检查权重矩阵正定性"
+                                            "\n- [ ] 补充 bootstrap 有效性证明"
+                                            "\n- [ ] 与 [[id:20251220T150000][emp-2025-xxx]] 结果对照"
+                                            "\n\n"
+                                            "* 参考文献"
+                                            "\n用 org-cite 语法插入，@BaiNg2002, @Chernozhukov2018."
+                                            "\n\n")))))
 
-      (use-package consult-denote
-        :after (denote consult)
-        :ensure t
-        :bind (("C-c n f" . consult-denote-find)
-               ("C-c n l" . consult-denote-link)
-               ("C-c n g" . consult-denote-ripgrep))
-        :config
-        (setq denote-consult-directory denote-directory))
+        (use-package consult-denote
+          :after (denote consult)
+          :ensure t
+          :bind (("C-c n f" . consult-denote-find)
+                 ("C-c n l" . consult-denote-link)
+                 ("C-c n g" . consult-denote-ripgrep))
+          :config
+          (setq denote-consult-directory denote-directory))
 #+end_src
 
 ** Org Agenda 配置
@@ -1612,39 +1623,37 @@
 ** Org Modern
 
 #+begin_src emacs-lisp
-(use-package org-modern
-  :ensure t
-  :after org
-  :hook ((org-mode . org-modern-mode)
-         (org-agenda-finalize . org-modern-agenda)
-         (org-modern-mode . my/org-modern-spacing))
-  :init
-  (when (fboundp 'menu-bar-mode) (menu-bar-mode -1))
-  (when (fboundp 'tool-bar-mode) (tool-bar-mode -1))
-  (when (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
-  (setq org-modern-star ["➫" "✦" "✜" "✲" "✸" "❅"]
-        org-modern-list '((43 . "➤") (45 . "▻") (42 . "►"))
-        org-modern-table-horizontal 0.2
-        org-tags-column 0
-        org-modern-table nil
-        org-special-ctrl-a/e t
-        org-insert-heading-respect-content t)
-  :config
-  (defun my/org-modern-spacing ()
-    (setq-local line-spacing
-                (if org-modern-mode 0.1 0.0)))
-  
-  (when (display-graphic-p)
-    (modify-all-frames-parameters
-     '((right-divider-width . 5)
-       (left-divider-width . 5)
-       (internal-border-width . 5)))
-    (dolist (face '(window-divider window-divider-first-pixel window-divider-last-pixel))
-      (face-spec-reset-face face)
-      (set-face-foreground face (face-attribute 'default :background)))
-    (set-face-background 'fringe (face-attribute 'default :background)))
-  
-  (custom-set-faces '(org-ellipsis ((t (:foreground "#90B44B" :underline nil))))))
+  (use-package org-modern
+    :ensure t
+    :after org
+    :hook ((org-mode . org-modern-mode)
+           (org-agenda-finalize . org-modern-agenda)
+           (org-modern-mode . my/org-modern-spacing))
+    :config
+    (defun my/org-modern-spacing ()
+      (setq-local line-spacing
+                  (if org-modern-mode 0.1 0.0)))
+
+    (when (display-graphic-p)
+      (modify-all-frames-parameters
+       '((right-divider-width . 5)
+         (left-divider-width . 5)
+         (internal-border-width . 5)))
+      (dolist (face '(window-divider window-divider-first-pixel window-divider-last-pixel))
+        (face-spec-reset-face face)
+        (set-face-foreground face (face-attribute 'default :background)))
+      (set-face-background 'fringe (face-attribute 'default :background)))
+    (with-eval-after-load 'org-modern
+      ;; 与 org-modern 本身相关的变量
+      (setq org-modern-star ["➫" "✦" "✜" "✲" "✸" "❅"]
+            org-modern-list '((43 . "➤") (45 . "▻") (42 . "►"))
+            org-modern-table-horizontal 0.2
+            org-tags-column 0
+            org-modern-table nil
+            org-special-ctrl-a/e t
+            org-insert-heading-respect-content t))
+
+    (custom-set-faces '(org-ellipsis ((t (:foreground "#90B44B" :underline nil))))))
 #+end_src
 
 ** Org Src 编辑
@@ -1779,7 +1788,6 @@
 #+end_src
 
 * LaTeX 配置
-
 ** Org -> LaTeX 导出
 
 #+begin_src emacs-lisp
@@ -1888,74 +1896,74 @@
 
 #+begin_src emacs-lisp
 (use-package latex
-  :ensure auctex
-  :mode ("\\.tex\\'" . LaTeX-mode)
-  :hook ((LaTeX-mode . prettify-symbols-mode)
-         (LaTeX-mode . my/latex-with-outline))
-  :bind (:map LaTeX-mode-map
-         ("C-S-e" . latex-math-from-calc)
-         ([remap LaTeX-environment] . cdlatex-environment))
-  :config
-  (setq TeX-auto-save t
-        TeX-parse-self t
-        TeX-save-query nil
-        TeX-PDF-mode t
-        TeX-source-correlate-mode t
-        TeX-source-correlate-start-server t
-        TeX-error-overview-open-after-TeX-run t
-        TeX-debug-warnings t
-        TeX-source-correlate-method 'synctex
-        TeX-engine 'xetex
-        TeX-command-default "Latexmk (xelatex)")
-  
-  (with-eval-after-load 'tex
-    (dolist (cmd '(("Latexmk (xelatex)" "latexmk -xelatex -interaction=nonstopmode -synctex=1 %s" TeX-run-TeX nil t :help "使用 latexmk (XeLaTeX) 编译")
-                   ("Latexmk Clean" "latexmk -c %s" TeX-run-command nil t :help "使用 latexmk 清理辅助文件")))
-      (push cmd TeX-command-list))
-    (setq TeX-view-program-list
-          '(("SumatraPDF"
-             "\"D:/Apps/Scoop/apps/SumatraPDF/current/SumatraPDF.exe\" -reuse-instance -forward-search \"%b\" %n \"%o\"")))
-    (setq TeX-view-program-selection
-          '((output-pdf "SumatraPDF"))))
-  
-  (defun my/latex-with-outline ()
-    (add-to-list 'minor-mode-overriding-map-alist
-                 `(outline-minor-mode . ,outline-minor-mode-map))
-    (outline-minor-mode 1))
-  
-  (defun latex-math-from-calc ()
-    "对光标所在行的内容执行 calc 求值"
-    (interactive)
-    (let ((calc-settings '(calc-language latex
-                                         calc-prefer-frac t
-                                         calc-angle-mode rad)))
-      (if (region-active-p)
-          (let* ((beg (region-beginning))
-                 (end (region-end))
-                 (string (buffer-substring-no-properties beg end)))
-            (delete-region beg end)
-            (insert (calc-eval (cons string calc-settings))))
-        (let ((l (thing-at-point 'line)))
-          (end-of-line 1)
-          (kill-line 0)
-          (insert (calc-eval (cons l calc-settings)))))))
-  
-  (add-hook 'LaTeX-mode-hook
-            (lambda ()
-              (setq TeX-auto-untabify t
-                    TeX-engine 'xetex
-                    TeX-show-compilation t
-                    TeX-save-query nil)
-              (TeX-global-PDF-mode t)
-              (imenu-add-menubar-index))))
+    :ensure auctex
+    :mode ("\\.tex\\'" . LaTeX-mode)
+    :hook ((LaTeX-mode . prettify-symbols-mode)
+           (LaTeX-mode . my/latex-with-outline))
+    :bind (:map LaTeX-mode-map
+           ("C-S-e" . latex-math-from-calc)
+           ([remap LaTeX-environment] . cdlatex-environment))
+    :config
+    (setq TeX-auto-save t
+          TeX-parse-self t
+          TeX-save-query nil
+          TeX-PDF-mode t
+          TeX-source-correlate-mode t
+          TeX-source-correlate-start-server t
+          TeX-error-overview-open-after-TeX-run t
+          TeX-debug-warnings t
+          TeX-source-correlate-method 'synctex
+          TeX-engine 'xetex
+          TeX-command-default "Latexmk (xelatex)")
+    
+    (with-eval-after-load 'tex
+      (dolist (cmd '(("Latexmk (xelatex)" "latexmk -xelatex -interaction=nonstopmode -synctex=1 %s" TeX-run-TeX nil t :help "使用 latexmk (XeLaTeX) 编译")
+                     ("Latexmk Clean" "latexmk -c %s" TeX-run-command nil t :help "使用 latexmk 清理辅助文件")))
+        (push cmd TeX-command-list))
+      (setq TeX-view-program-list
+            '(("SumatraPDF"
+               "\"D:/Apps/Scoop/apps/SumatraPDF/current/SumatraPDF.exe\" -reuse-instance -forward-search \"%b\" %n \"%o\"")))
+      (setq TeX-view-program-selection
+            '((output-pdf "SumatraPDF"))))
+    
+    (defun my/latex-with-outline ()
+      (add-to-list 'minor-mode-overriding-map-alist
+                   `(outline-minor-mode . ,outline-minor-mode-map))
+      (outline-minor-mode 1))
+    
+    (defun latex-math-from-calc ()
+      "对光标所在行的内容执行 calc 求值"
+      (interactive)
+      (let ((calc-settings '(calc-language latex
+                                           calc-prefer-frac t
+                                           calc-angle-mode rad)))
+        (if (region-active-p)
+            (let* ((beg (region-beginning))
+                   (end (region-end))
+                   (string (buffer-substring-no-properties beg end)))
+              (delete-region beg end)
+              (insert (calc-eval (cons string calc-settings))))
+          (let ((l (thing-at-point 'line)))
+            (end-of-line 1)
+            (kill-line 0)
+            (insert (calc-eval (cons l calc-settings)))))))
+    
+    (add-hook 'LaTeX-mode-hook
+              (lambda ()
+                (setq TeX-auto-untabify t
+                      TeX-engine 'xetex
+                      TeX-show-compilation t
+                      TeX-save-query nil)
+                (TeX-global-PDF-mode t)
+                (imenu-add-menubar-index))))
 
-(use-package preview
-  :after latex
-  :hook (LaTeX-mode . preview-larger-previews)
-  :config
-  (defun preview-larger-previews ()
-    (setq preview-scale-function
-          (lambda () (* 1.25 (funcall (preview-scale-from-face)))))))
+  (use-package preview
+    :after latex
+    :hook (LaTeX-mode . preview-larger-previews)
+    :config
+    (defun preview-larger-previews ()
+      (setq preview-scale-function
+            (lambda () (* 1.25 (funcall (preview-scale-from-face)))))))
 #+end_src
 
 ** CDLatex
@@ -2003,59 +2011,6 @@
            ("<tab>" . lazytab-org-table-next-field-maybe)
            ("TAB" . lazytab-org-table-next-field-maybe))
     :hook (cdlatex-tab . lazytab-cdlatex-or-orgtbl-next-field))
-    ;; :config
-    ;; (defun lazytab-position-cursor-and-edit ()
-    ;;   (cdlatex-position-cursor)
-    ;;   (lazytab-orgtbl-edit))
-    
-    ;; (defun lazytab-orgtbl-edit ()
-    ;;   (advice-add 'orgtbl-ctrl-c-ctrl-c :after #'lazytab-orgtbl-replace)
-    ;;   (orgtbl-mode 1)
-    ;;   (open-line 1)
-    ;;   (insert "\n|"))
-    
-    ;; (defun lazytab-orgtbl-replace (_)
-    ;;   "替换 org 表格为 LaTeX 格式"
-    ;;   (interactive "P")
-    ;;   (unless (org-at-table-p) (user-error "不在表格中"))
-    ;;   (let* ((table (org-table-to-lisp))
-    ;;          (replacement-table
-    ;;           (if (texmathp)
-    ;;               (lazytab-orgtbl-to-amsmath table nil)
-    ;;             (orgtbl-to-latex table nil))))
-    ;;     (kill-region (org-table-begin) (org-table-end))
-    ;;     (open-line 1)
-    ;;     (push-mark)
-    ;;     (insert replacement-table)
-    ;;     (align-regexp (region-beginning) (region-end) "\\([:space:]*\\)& ")
-    ;;     (orgtbl-mode -1)
-    ;;     (advice-remove 'orgtbl-ctrl-c-ctrl-c #'lazytab-orgtbl-replace)))
-    
-    ;; (defun lazytab-orgtbl-to-amsmath (table params)
-    ;;   "将 org 表格转换为 amsmath 格式"
-    ;;   (orgtbl-to-generic
-    ;;    table
-    ;;    (org-combine-plists
-    ;;     '(:splice t :lstart "" :lend " \\\\" :sep " & "
-    ;;       :hline nil :llend "")
-    ;;     params)))
-    
-    ;; (defun lazytab-cdlatex-or-orgtbl-next-field ()
-    ;;   "在表格中智能处理字段跳转"
-    ;;   (when (and (bound-and-true-p orgtbl-mode)
-    ;;              (org-table-p)
-    ;;              (looking-at "[[:space:]]*\\(?:|\\|$\\)")
-    ;;              (let ((s (thing-at-point 'sexp)))
-    ;;                (not (and s (assoc s cdlatex-command-alist-comb)))))
-    ;;     (call-interactively #'org-table-next-field)
-    ;;     t))
-    
-    ;; (defun lazytab-org-table-next-field-maybe ()
-    ;;   "可能跳转到下一个表格字段"
-    ;;   (interactive)
-    ;;   (if (bound-and-true-p cdlatex-mode)
-    ;;       (cdlatex-tab)
-    ;;     (org-table-next-field))))
 #+end_src
 
 ** Consult-RefTeX
@@ -2292,20 +2247,11 @@
 #+begin_src emacs-lisp
   (use-package ess
     :ensure t
-    :defer t
     :mode (("\\.[rR]\\'" . ess-r-mode))
-    :hook ((ess-r-mode inferior-ess-r-mode) . electric-layout-mode)
+    :hook (((ess-r-mode inferior-ess-r-mode) . electric-layout-mode)
+           ((ess-r-mode inferior-ess-r-mode) . (lambda ()
+                                                 (require 'ess-site))))   ; 确保模式正确初始化
     :commands R
-    :bind (:map ess-r-mode-map
-           (";" . ess-insert-assign)
-           ("M--" . ess-insert-assign)
-           ("C-S-m" . japhir/insert-r-pipe)
-           :map inferior-ess-r-mode-map
-           (";" . ess-insert-assign)
-           ("M--" . ess-insert-assign)
-           ("C-S-m" . japhir/insert-r-pipe))
-    :init
-    (require 'ess-site)
     :custom
     (ess-style 'RStudio)
     (ess-use-ido nil)
@@ -2327,88 +2273,92 @@
        (ess-R-fl-keyword:=)
        (ess-R-fl-keyword:F&T)))
     :config
+    (with-eval-after-load 'ess-r-mode
+      (bind-keys
+       :map ess-r-mode-map
+       (";"   . ess-insert-assign)
+       ("M--" . ess-insert-assign))
+      (bind-keys
+       :map inferior-ess-r-mode-map
+       (";"   . ess-insert-assign)
+       ("M--" . ess-insert-assign)))
     (defun my-org-confirm-babel-evaluate (lang body)
       "允许 R、elisp 和 latex 代码块无需确认执行"
       (not (member lang '("R" "elisp" "latex" "C"))))
 
     (setq org-confirm-babel-evaluate #'my-org-confirm-babel-evaluate)
-
-    (add-to-list 'display-buffer-alist
-                 '("\\*R:"
-                   (display-buffer-in-side-window)
-                   (inhibit-same-window . t)
-                   (side . right)))
-
+    (with-eval-after-load 'ess
+      (add-to-list 'display-buffer-alist
+                   '("\\*R:"
+                     (display-buffer-in-side-window)
+                     (inhibit-same-window . t)
+                     (side . right))))
 
     (setq org-src-fontify-natively t
           org-src-tab-acts-natively t))
+
   (use-package quickrun
     :ensure t
     :bind ("C-c x" . quickrun))
 #+end_src
-
 
 * 工具集成
 
 ** GPTel
 
 #+begin_src emacs-lisp
-(defvar my/gptel-cache-dir (locate-user-emacs-file "etc/gptel/"))
-(unless (file-directory-p my/gptel-cache-dir)
-  (make-directory my/gptel-cache-dir t))
+  (defvar my/gptel-cache-dir (locate-user-emacs-file "etc/gptel/"))
+  (unless (file-directory-p my/gptel-cache-dir)
+    (make-directory my/gptel-cache-dir t))
 
-(use-package gptel
-  :ensure t
-  :config
-  (setq gptel-default-mode 'org-mode
-        gptel-use-curl nil
-        gptel-model 'kimi-k2-thinking
-        gptel-backend
-        (gptel-make-openai "Aliyun Bailian"
-          :host "dashscope.aliyuncs.com"
-          :endpoint "/compatible-mode/v1/chat/completions"
-          :stream t
-          :key "sk-0e8850453d3543a895b0393acab5128b"
-          :models '(qwen-max qwen-plus qwen-turbo kimi-k2-thinking)))
-  :bind (("C-c C-<return>" . gptel-menu)
-         ("C-c <return>" . gptel-send)
-         ("C-c C-g" . gptel-abort)
-         :map gptel-mode-map
-         ("C-c C-x t" . gptel-set-topic))
-  :custom
-  (gptel-prompt-prefix-alist
-   '((markdown-mode . "### ")
-     (org-mode . "* ")
-     (text-mode . "### ")))
-  (gptel-response-prefix-alist
-   '((markdown-mode . "")
-     (org-mode . "")
-     (text-mode . ""))))
+  (use-package gptel
+    :ensure t
+    :config
+    (setq gptel-default-mode 'org-mode
+          gptel-use-curl nil
+          gptel-model 'kimi-k2-thinking
+          gptel-backend
+          (gptel-make-openai "Aliyun Bailian"
+            :host "dashscope.aliyuncs.com"
+            :endpoint "/compatible-mode/v1/chat/completions"
+            :stream t
+            :key "sk-0e8850453d3543a895b0393acab5128b"
+            :models '(qwen-max qwen-plus qwen-turbo kimi-k2-thinking)))
+    :bind (("C-c C-<return>" . gptel-menu)
+           ("C-c <return>" . gptel-send)
+           ("C-c C-g" . gptel-abort)
+           :map gptel-mode-map
+           ("C-c C-x t" . gptel-set-topic))
+    :custom
+    (gptel-prompt-prefix-alist
+     '((markdown-mode . "### ")
+       (org-mode . "* ")
+       (text-mode . "### ")))
+    (gptel-response-prefix-alist
+     '((markdown-mode . "")
+       (org-mode . "")
+       (text-mode . ""))))
 
-(use-package gptel-magit
-  :ensure t
-  :hook (magit-mode . gptel-magit-install))
-(use-package agent-shell
-  :ensure t
-  :diminish agent-shell-ui-mode)
+  (use-package gptel-magit
+    :ensure t
+    :hook (magit-mode . gptel-magit-install))
 
-(defun replace-and-trim-latex (&rest _)
-  "将 LaTeX 分隔符替换为 $, $$"
-  (save-excursion
-    (goto-char (point-min))
-    (let ((replacements '(("\\\\(" . "$")
-                          ("\\\\)" . "$")
-                          ("\\\\\\[" . "$$")
-                          ("\\\\\\]" . "$$"))))
-      (dolist (pair replacements)
-        (goto-char (point-min))
-        (while (re-search-forward (car pair) nil t)
-          (replace-match (cdr pair) nil nil))))
-    (goto-char (point-min))
-    (while (re-search-forward "\\(?:^\\| \\)\\$\\(?: \\|$\\)" nil t)
-      (replace-match "$" nil nil))))
-
-(add-hook 'gptel-post-response-functions #'replace-and-trim-latex)
+  (defun replace-and-trim-latex (&rest _)
+    "将 LaTeX 分隔符替换为 $, $$"
+    (save-excursion
+      (goto-char (point-min))
+      (let ((replacements '(("\\\\(" . "$")
+                            ("\\\\)" . "$")
+                            ("\\\\\\[" . "$$")
+                            ("\\\\\\]" . "$$"))))
+        (dolist (pair replacements)
+          (goto-char (point-min))
+          (while (re-search-forward (car pair) nil t)
+            (replace-match (cdr pair) nil nil))))
+      (goto-char (point-min))
+      (while (re-search-forward "\\(?:^\\| \\)\\$\\(?: \\|$\\)" nil t)
+        (replace-match "$" nil nil))))
+  (add-hook 'gptel-post-response-functions #'replace-and-trim-latex)
 #+end_src
 
 ** Persistent Scratch

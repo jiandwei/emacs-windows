@@ -1,8 +1,12 @@
 #+TITLE: Emacs 配置文件
 #+AUTHOR: 毕家伟
-#+PROPERTY: header-args:emacs-lisp :tangle config.el :comments link
-#+STARTUP: overview
-
+#+PROPERTY: header-args:emacs-lisp :tangle config.el
+#+begin_src emacs-lisp
+  ;;; config.el --- Tangled from config.org -*- lexical-binding: t -*-
+  ;;; Commentary:
+  ;; 这个文件是从 config.org 自动生成的
+  ;;; Code:
+#+end_src
 
 * 目录                                                              :TOC:
 - [[#文件头部][文件头部]]
@@ -20,12 +24,7 @@
 - [[#工具集成][工具集成]]
 - [[#日历配置][日历配置]]
 
-#+begin_src emacs-lisp
-  ;;; config.el --- Tangled from config.org -*- lexical-binding: t -*-
-  ;;; Commentary:
-  ;; 这个文件是从 config.org 自动生成的
-  ;;; Code:
-#+end_src
+
 * 基础配置
 ** 核心设置
 
@@ -2431,49 +2430,74 @@
 ** Magit
 
 #+begin_src emacs-lisp
-(use-package magit
-  :ensure t
-  :hook (git-commit-setup . git-commit-turn-on-flyspell)
-  :bind (("C-x g" . magit-status)
-         ("C-x M-g" . magit-dispatch)
-         ("C-c M-g" . magit-file-dispatch))
-  :custom
-  (magit-diff-refine-hunk t)
-  (magit-diff-paint-whitespace nil)
-  (magit-ediff-dwim-show-on-hunks t))
+  (use-package magit
+    :ensure t
+    :hook (git-commit-setup . git-commit-turn-on-flyspell)
+    :bind (("C-x g" . magit-status)
+           ("C-x M-g" . magit-dispatch)
+           ("C-c M-g" . magit-file-dispatch))
+    :custom
+    (magit-diff-refine-hunk t)
+    (magit-diff-paint-whitespace nil)
+    (magit-ediff-dwim-show-on-hunks t))
 
-(use-package gptel-magit
-  :after magit
-  :ensure t
-  :hook (magit-mode . gptel-magit-install))
+  (use-package gptel-commit
+    :after (gptel magit)
+    :config
+    (setq gptel-commit-backend (gptel-make-gh-copilot "Copilot")
+          gptel-commit-prompt
+          "You are an expert at writing Git commits. Your job is to write a short clear commit message that summarizes the changes.
+
+  If you can accurately express the change in just the subject line, don't include anything in the message body. Only use the body when it is providing *useful* information.
+
+  Don't repeat information from the subject line in the message body.
+
+  Only return the commit message in your response. Do not include any additional meta-commentary about the task. Do not include the raw diff output in the commit message.
+
+  Follow good Git style:
+
+  - Separate the subject from the body with a blank line
+  - Try to limit the subject line to 50 characters
+  - Capitalize the subject line
+  - Do not end the subject line with any punctuation
+  - Use the imperative mood in the subject line
+  - Wrap the body at 72 characters
+  - Keep the body short and concise (omit it entirely if not useful)")
+    :custom
+    (gptel-commit-stream t))
+  (with-eval-after-load 'magit
+    (define-key git-commit-mode-map (kbd "C-c g") #'gptel-commit)
+    (define-key git-commit-mode-map (kbd "C-c G") #'gptel-commit-rationale))
+
 #+end_src
 * 日历配置
 
 #+begin_src emacs-lisp
-(use-package cal-china-x
-  :ensure t
-  :after calendar
-  :autoload cal-china-x-setup
-  :init (cal-china-x-setup)
-  :config
-  (setq calendar-mark-holidays-flag t
-        cal-china-x-important-holidays cal-china-x-chinese-holidays
-        cal-china-x-general-holidays '((holiday-lunar 1 15 "元宵节")
-                                       (holiday-lunar 7 7 "七夕节")
-                                       (holiday-fixed 3 8 "妇女节")
-                                       (holiday-fixed 3 12 "植树节")
-                                       (holiday-fixed 5 4 "青年节")
-                                       (holiday-fixed 6 1 "儿童节")
-                                       (holiday-fixed 9 10 "教师节"))
-        holiday-other-holidays '((holiday-fixed 2 14 "情人节")
-                                 (holiday-fixed 4 1 "愚人节")
-                                 (holiday-fixed 12 25 "圣诞节")
-                                 (holiday-float 5 0 2 "母亲节")
-                                 (holiday-float 6 0 3 "父亲节")
-                                 (holiday-float 11 4 4 "感恩节"))
-        calendar-holidays (append cal-china-x-important-holidays
-                                  cal-china-x-general-holidays
-                                  holiday-other-holidays)))
+  (use-package cal-china-x
+    :ensure t
+    :after calendar
+    :autoload cal-china-x-setup
+    :init (cal-china-x-setup)
+    :config
+    (setq calendar-mark-holidays-flag t
+          cal-china-x-important-holidays cal-china-x-chinese-holidays
+          cal-china-x-general-holidays '((holiday-lunar 1 15 "元宵节")
+                                         (holiday-lunar 7 7 "七夕节")
+                                         (holiday-fixed 3 8 "妇女节")
+                                         (holiday-fixed 3 12 "植树节")
+                                         (holiday-fixed 5 4 "青年节")
+                                         (holiday-fixed 6 1 "儿童节")
+                                         (holiday-fixed 9 10 "教师节"))
+          holiday-other-holidays '((holiday-fixed 2 14 "情人节")
+                                   (holiday-fixed 4 1 "愚人节")
+                                   (holiday-fixed 12 25 "圣诞节")
+                                   (holiday-float 5 0 2 "母亲节")
+                                   (holiday-float 6 0 3 "父亲节")
+                                   (holiday-float 11 4 4 "感恩节"))
+          calendar-holidays (append cal-china-x-important-holidays
+                                    cal-china-x-general-holidays
+                                    holiday-other-holidays)))
+  ;; 
 #+end_src
 
 #+begin_src emacs-lisp

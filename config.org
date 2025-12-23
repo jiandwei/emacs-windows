@@ -1,4 +1,4 @@
-#+TITLE: Emacs 配置文件
+？#+TITLE: Emacs 配置文件
 #+AUTHOR: 毕家伟
 #+PROPERTY: header-args:emacs-lisp :tangle config.el
 #+begin_src emacs-lisp
@@ -6,29 +6,12 @@
   ;;; Commentary:
   ;; 这个文件是从 config.org 自动生成的
   ;;; Code:
-#+end_src
-
-* 目录                                                              :TOC:
-- [[#文件头部][文件头部]]
-- [[#基础配置][基础配置]]
-- [[#包管理][包管理]]
-- [[#ui-界面][UI 界面]]
-- [[#编辑器设置][编辑器设置]]
-- [[#编辑增强][编辑增强]]
-- [[#补全系统][补全系统]]
-- [[#高亮与反馈][高亮与反馈]]
-- [[#文件管理][文件管理]]
-- [[#笔记系统][笔记系统]]
-- [[#latex-配置][LaTeX 配置]]
-- [[#编程语言][编程语言]]
-- [[#工具集成][工具集成]]
-- [[#日历配置][日历配置]]
-
-
+#+end_
 * 基础配置
 ** 核心设置
 
 #+begin_src emacs-lisp
+
   ;; 命令行选项
   (setq command-line-x-option-alist nil)
 
@@ -307,118 +290,119 @@
 * 编辑器设置
 
 #+begin_src emacs-lisp
-    (use-package emacs
-      :custom
-      (menu-bar-mode nil)
-      (scroll-bar-mode nil)
-      (tool-bar-mode nil)
-      (inhibit-startup-screen t)
-      (delete-selection-mode t)
-      (electric-indent-mode nil)
-      (electric-pair-mode t)
-      (blink-cursor-mode nil)
-      (global-auto-revert-mode t)
-      (mouse-wheel-progressive-speed nil)
-      (scroll-conservatively 10)
-      (tab-width 4)
-      (use-dialog-box nil)
-      (make-backup-files nil)
-      :config
-      ;; 运行时状态目录
-      (setq server-auth-dir (locate-user-emacs-file "etc/server/")
-            auto-save-list-file-prefix (locate-user-emacs-file "etc/auto-save-list/.saves-"))
-      (dolist (dir '("etc/" "etc/server/" "etc/auto-save-list/" "etc/org-persist/" "etc/transient/" "etc/persistent-scratch/"))
-        (make-directory (locate-user-emacs-file dir) t))
+  (use-package emacs
+    :custom
+    (initial-major-mode 'text-mode)
+    (initial-scratch-message "")
+    (menu-bar-mode nil)
+    (scroll-bar-mode nil)
+    (tool-bar-mode nil)
+    (inhibit-startup-screen t)
+    (delete-selection-mode t)
+    (electric-indent-mode nil)
+    (electric-pair-mode t)
+    (blink-cursor-mode nil)
+    (global-auto-revert-mode t)
+    (mouse-wheel-progressive-speed nil)
+    (scroll-conservatively 10)
+    (tab-width 4)
+    (use-dialog-box nil)
+    (make-backup-files nil)
+    :config
+    ;; 运行时状态目录
+    (setq server-auth-dir (locate-user-emacs-file "etc/server/")
+          auto-save-list-file-prefix (locate-user-emacs-file "etc/auto-save-list/.saves-"))
+    (dolist (dir '("etc/" "etc/server/" "etc/auto-save-list/" "etc/org-persist/" "etc/transient/" "etc/persistent-scratch/"))
+      (make-directory (locate-user-emacs-file dir) t))
 
-      (setq custom-file (locate-user-emacs-file "etc/custom-vars.el"))
-      (load custom-file 'noerror 'nomessage)
-      (setq warning-minimum-level :emergency)
-      (setq default-directory "C:/Users/wei/Documents/")
-      ;; 调整frame-title
-      ;; 主窗口标题仅显示 buffer 名
-      (setq frame-title-format "%b")
-      ;; 任务栏/图标标题也同步（可选）
-      (setq icon-title-format "%b")
-      ;; 像素级调整窗口
-      (setq window-resize-pixelwise t
-            frame-resize-pixelwise t)
+    (setq custom-file (locate-user-emacs-file "etc/custom-vars.el"))
+    (load custom-file 'noerror 'nomessage)
+    (setq warning-minimum-level :emergency)
+    (setq default-directory "C:/Users/wei/Documents/")
+    ;; 调整frame-title
+    ;; 主窗口标题仅显示 buffer 名
+    (setq frame-title-format "%b")
+    ;; 任务栏/图标标题也同步（可选）
+    (setq icon-title-format "%b")
+    ;; 像素级调整窗口
+    (setq window-resize-pixelwise t
+          frame-resize-pixelwise t)
 
-      ;; Linux 特定
-      (setq x-gtk-use-system-tooltips t
-            x-gtk-use-native-input t
-            x-underline-at-descent-line t)
-      (setq native-comp-async-report-warnings-errors nil)
+    ;; Linux 特定
+    (setq x-gtk-use-system-tooltips t
+          x-gtk-use-native-input t
+          x-underline-at-descent-line t)
+    (setq native-comp-async-report-warnings-errors nil)
 
-      ;; Electric mode
-      (electric-pair-mode t)
+    ;; Electric mode
+    (electric-pair-mode t)
 
-      ;; 长行优化
-      (setq-default bidi-paragraph-direction 'left-to-right)
-      (setq bidi-inhibit-bpa t)
+    ;; 长行优化
+    (setq-default bidi-paragraph-direction 'left-to-right)
+    (setq bidi-inhibit-bpa t)
 
-      ;; 无锁文件
-      (setq create-lockfiles nil)
+    ;; 无锁文件
+    (setq create-lockfiles nil)
 
-      ;; 总是加载最新文件
-      (setq load-prefer-newer t)
+    ;; 总是加载最新文件
+    (setq load-prefer-newer t)
 
-      ;; 剪贴板设置
-      (setq select-enable-primary t
-            select-enable-clipboard t)
+    ;; 剪贴板设置
+    (setq select-enable-primary t
+          select-enable-clipboard t)
 
-      ;; 字体缓存不 GC
-      (setq inhibit-compacting-font-caches t)
+    ;; 字体缓存不 GC
+    (setq inhibit-compacting-font-caches t)
 
-      ;; 显示改进
-      (setq display-raw-bytes-as-hex t
-            redisplay-skip-fontification-on-input t)
+    ;; 显示改进
+    (setq display-raw-bytes-as-hex t
+          redisplay-skip-fontification-on-input t)
 
-      ;; 禁用响铃
-      (setq ring-bell-function 'ignore)
+    ;; 禁用响铃
+    (setq ring-bell-function 'ignore)
 
-      ;; 禁用光标闪烁
-      (setq blink-cursor-mode nil)
+    ;; 禁用光标闪烁
+    (setq blink-cursor-mode nil)
 
-      ;; 平滑滚动
-      (setq scroll-step 2
-            scroll-margin 2
-            hscroll-step 2
-            hscroll-margin 2
-            scroll-conservatively 101
-            scroll-preserve-screen-position 'always)
+    ;; 平滑滚动
+    (setq scroll-step 2
+          scroll-margin 2
+          hscroll-step 2
+          hscroll-margin 2
+          scroll-conservatively 101
+          scroll-preserve-screen-position 'always)
 
-      (setq auto-hscroll-mode 'current-line)
-      (setq auto-window-vscroll nil)
-      (setq mouse-yank-at-point t)
-      (setq-default fill-column 80)
+    (setq auto-hscroll-mode 'current-line)
+    (setq auto-window-vscroll nil)
+    (setq mouse-yank-at-point t)
+    (setq-default fill-column 80)
 
-      ;; 将 _ 视为单词组成部分
-      (add-hook 'after-change-major-mode-hook
-                (lambda ()
-                  (modify-syntax-entry ?_ "w")))
+    ;; 将 _ 视为单词组成部分
+    (add-hook 'after-change-major-mode-hook
+              (lambda ()
+                (modify-syntax-entry ?_ "w")))
 
-      ;; 禁用 tabs
-      (setq-default indent-tabs-mode nil)
-      (setq-default tab-width 4)
+    ;; 禁用 tabs
+    (setq-default indent-tabs-mode nil)
+    (setq-default tab-width 4)
 
-      ;; 字体大小
-      (set-face-attribute 'default nil :height 110)
+    ;; 字体大小
+    (set-face-attribute 'default nil :height 110)
 
-      ;; 启用被禁用的命令
-      (put 'narrow-to-defun 'disabled nil)
-      (put 'narrow-to-page 'disabled nil)
-      (put 'narrow-to-region 'disabled nil)
-      (put 'dired-find-alternate-file 'disabled nil)
-      (put 'list-timers 'disabled nil)
-      (put 'list-threads 'disabled nil)
+    ;; 启用被禁用的命令
+    (put 'narrow-to-defun 'disabled nil)
+    (put 'narrow-to-page 'disabled nil)
+    (put 'narrow-to-region 'disabled nil)
+    (put 'dired-find-alternate-file 'disabled nil)
+    (put 'list-timers 'disabled nil)
+    (put 'list-threads 'disabled nil)
 
-      (with-eval-after-load 'help-fns
-        (put 'help-fns-edit-variable 'disabled nil))
+    (with-eval-after-load 'help-fns
+      (put 'help-fns-edit-variable 'disabled nil))
+    :bind (([escape] . keyboard-escape-quit)))
 
-      :bind (([escape] . keyboard-escape-quit)))
-
-    ;; 自动重新加载
-    (global-auto-revert-mode 1)
+  ;; 自动重新加载
+  (global-auto-revert-mode 1)
 #+end_src
 
 * 编辑增强
@@ -1708,7 +1692,7 @@
 
 #+begin_src emacs-lisp
       (use-package appt
-        :defer 5
+        :defer org-agenda
         :ensure nil
         :config
         (appt-activate 1)
@@ -2504,7 +2488,6 @@
           calendar-holidays (append cal-china-x-important-holidays
                                     cal-china-x-general-holidays
                                     holiday-other-holidays)))
-  ;; 
 #+end_src
 
 #+begin_src emacs-lisp

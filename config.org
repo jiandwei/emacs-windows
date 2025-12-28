@@ -1,4 +1,4 @@
-？#+TITLE: Emacs 配置文件
+#+TITLE: Emacs 配置文件
 #+AUTHOR: 毕家伟
 #+PROPERTY: header-args:emacs-lisp :tangle config.el
 #+begin_src emacs-lisp
@@ -6,7 +6,7 @@
   ;;; Commentary:
   ;; 这个文件是从 config.org 自动生成的
   ;;; Code:
-#+end_
+#+end_src
 * 基础配置
 ** 核心设置
 
@@ -537,7 +537,7 @@
     :after vertico
     :hook (after-init . marginalia-mode)
     :config
-    (defun eli/marginalia-annotate-command (cand)
+    (defun my/marginalia-annotate-command (cand)
       "Annotate command CAND with its documentation string."
       (when-let* ((sym (intern-soft cand)))
         (concat
@@ -548,7 +548,7 @@
          (marginalia-annotate-binding cand)
          (marginalia--documentation (marginalia--function-doc sym)))))
     (setf (alist-get 'command marginalia-annotator-registry)
-          '(eli/marginalia-annotate-command marginalia-annotate-binding builtin none)))
+          '(my/marginalia-annotate-command marginalia-annotate-binding builtin none)))
 #+end_src
 
 ** Consult
@@ -1226,7 +1226,7 @@
                            (visual-line-mode 1)
                            (turn-on-org-cdlatex)
                            (yas-minor-mode 1)
-                           (er/add-latex-in-org-mode-expansions)
+                           (my/add-latex-in-org-mode-expansions)
                            (my/org-indent-setup)))
              (org-babel-after-execute . org-redisplay-inline-images))
       :bind (("C-c a" . org-agenda)
@@ -1287,21 +1287,21 @@
       (org-fast-tag-selection-single-key t)
       (org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
       :config
-      (defun er/add-latex-in-org-mode-expansions ()
+      (defun my/add-latex-in-org-mode-expansions ()
         (modify-syntax-entry ?\\ "\\" org-mode-syntax-table)
         (setq paragraph-start (concat paragraph-start "\\|\\\\end{\\([A-Za-z0-9*]+\\)}"))
         (setq-local beginning-of-defun-function 'my/org-beginning-of-defun)
         (with-eval-after-load 'expand-region
-          (set (make-local-variable 'er/try-expand-list)
-               (append (cl-set-difference er/try-expand-list
-                                          '(er/mark-method-call
-                                            er/mark-inside-pairs
-                                            er/mark-outside-pairs))
+          (set (make-local-variable 'my/try-expand-list)
+               (append (cl-set-difference my/try-expand-list
+                                          '(my/mark-method-call
+                                            my/mark-inside-pairs
+                                            my/mark-outside-pairs))
                        '(LaTeX-mark-environment
-                         er/mark-LaTeX-inside-math
-                         er/mark-latex-inside-pairs
-                         er/mark-latex-outside-pairs
-                         er/mark-LaTeX-math)))))
+                         my/mark-LaTeX-inside-math
+                         my/mark-latex-inside-pairs
+                         my/mark-latex-outside-pairs
+                         my/mark-LaTeX-math)))))
       
       (defun my/org-indent-setup ()
         (setq-local show-paren-mode nil))
@@ -1622,37 +1622,55 @@
 ** Org Modern
 
 #+begin_src emacs-lisp
-  (use-package org-modern
-    :ensure t
-    :after org
-    :hook ((org-mode . org-modern-mode)
-           (org-agenda-finalize . org-modern-agenda)
-           (org-modern-mode . my/org-modern-spacing))
-    :config
-    (defun my/org-modern-spacing ()
-      (setq-local line-spacing
-                  (if org-modern-mode 0.1 0.0)))
+(use-package org-modern
+  :ensure t
+  :defer t ; 完全延迟加载，直到 org-mode 触发
+  
+  :hook
+  ((org-mode . org-modern-mode)
+   (org-agenda-finalize . org-modern-agenda))
+  
+  :init
+  ;; 仅定义最轻量的函数，不执行任何配置
+  (defun my/org-modern--configure-spacing ()
+    "根据 org-modern-mode 设置行间距。"
+    (setq-local line-spacing (if org-modern-mode 0.1 0.0)))
 
-    (when (display-graphic-p)
-      (modify-all-frames-parameters
-       '((right-divider-width . 5)
-         (left-divider-width . 5)
-         (internal-border-width . 5)))
-      (dolist (face '(window-divider window-divider-first-pixel window-divider-last-pixel))
-        (face-spec-reset-face face)
-        (set-face-foreground face (face-attribute 'default :background)))
-      (set-face-background 'fringe (face-attribute 'default :background)))
-    (with-eval-after-load 'org-modern
-      ;; 与 org-modern 本身相关的变量
-      (setq org-modern-star ["➫" "✦" "✜" "✲" "✸" "❅"]
-            org-modern-list '((43 . "➤") (45 . "▻") (42 . "►"))
-            org-modern-table-horizontal 0.2
-            org-tags-column 0
-            org-modern-table nil
-            org-special-ctrl-a/e t
-            org-insert-heading-respect-content t))
-
-    (custom-set-faces '(org-ellipsis ((t (:foreground "#90B44B" :underline nil))))))
+  :config
+  ;; ===== 一次性图形界面配置 =====
+  ;; 使用 eval-after-load 确保仅在需要时执行一次
+  (when (display-graphic-p)
+    (eval-after-load 'org-modern
+      `(progn
+         ;; 直接设置参数，避免遍历
+         (set-frame-parameter nil 'right-divider-width 5)
+         (set-frame-parameter nil 'left-divider-width 5)
+         (set-frame-parameter nil 'internal-border-width 5)
+         
+         ;; 一次性获取背景色并应用
+         (let ((bg (face-attribute 'default :background nil 'default)))
+           (set-face-attribute 'window-divider nil :foreground bg)
+           (set-face-attribute 'window-divider-first-pixel nil :foreground bg)
+           (set-face-attribute 'window-divider-last-pixel nil :foreground bg)
+           (set-face-attribute 'fringe nil :background bg)))))
+  
+  ;; ===== 合并所有配置项，减少多次 setq =====
+  (setq org-modern-star ["➫" "✦" "✜" "✲" "✸" "❅"]
+        org-modern-list '((43 . "➤") (45 . "▻") (42 . "►"))
+        org-modern-table-horizontal 0.2
+        org-modern-table nil
+        org-tags-column 0
+        org-special-ctrl-a/e t
+        org-insert-heading-respect-content t)
+  
+  ;; ===== 轻量 hook 设置 =====
+  (add-hook 'org-modern-mode-hook #'my/org-modern--configure-spacing)
+  
+  ;; ===== 延迟 face 设置，避免加载时计算 =====
+  (with-eval-after-load 'org-faces
+    (set-face-attribute 'org-ellipsis nil
+                        :foreground "#90B44B"
+                        :underline nil)))
 #+end_src
 
 ** Org Src 编辑

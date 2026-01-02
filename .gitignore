@@ -21,3 +21,7 @@ dist/
 /eln-cache/*
 config.el
 tramp
+/.cache/
+/eshell/
+/projects.eld
+/tree-sitter/

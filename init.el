@@ -5,9 +5,6 @@
 
 ;;; Code:
 
-;; 记录启动时间
-(defvar my/emacs-load-start-time (current-time))
-
 ;; ==================== 包管理 ====================
 (require 'package)
 (setq package-archives '(("gnu"    . "https://mirrors.ustc.edu.cn/elpa/gnu/")
@@ -44,13 +41,5 @@
    (org-exists
     (require 'org)
     (org-babel-load-file org-file))))
-
-;; ==================== 启动完成 ====================
-(add-hook 'emacs-startup-hook
-          (lambda ()
-            (message "Emacs 启动完成，耗时 %.2f 秒，加载了 %d 个包"
-                     (float-time (time-subtract (current-time)
-                                                my/emacs-load-start-time))
-                     (length package-activated-list))))
 
 ;;; init.el ends here

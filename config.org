@@ -157,26 +157,48 @@
 ** 主题配置
 
 #+begin_src emacs-lisp
+      (use-package panel
+        :vc (panel :url "https://github.com/LuciusChen/panel.git"
+                   :branch "main")
+        :defer t
+        :config
+        ;; 基础显示配置
+        (setq panel-title "快捷访问 [C-number 打开文件]"
+              panel-show-file-path nil
+              ;;panel-min-left-padding 10
+              panel-path-max-length 72
+              ;; 地理位置 - 大连
+              panel-latitude 38.9140
+              panel-longitude 121.6147
+              ;; 图片配置
+              panel-image-file ""
+              panel-image-width 200
+              panel-image-height 200
+              ;; 天气更新配置
+              panel-weather-update-interval 900
+              panel-weather-cache-duration 900
+              panel-weather-max-retries 3))
+    (panel-create-hook)
 
-
-(use-package circadian
-  :ensure t
-  :defer t                     ;; 不要在 load-path 扫描时就加载包
-  :init
-  ;; 这里写变量设置，不会触发包的真正加载
-  (setq circadian-themes
-        '((:sunrise . modus-operandi)
-          (:sunset  . modus-vivendi))
-        calendar-latitude  39.90
-        calendar-longitude 116.40
-        calendar-location-name "Beijing")
- :hook (after-init . circadian-setup))
-  ;; 初始 frame 设置
-  (setq initial-frame-alist '((top . 0.5)
-                              (left . 0.5)
-                              (width . 0.7)
-                              (height . 0.85)
-                              (fullscreen)))
+      (use-package circadian
+        :ensure t
+        :defer t
+        ;; 不要在 load-path 扫描时就加载包
+        :init
+        ;; 这里写变量设置，不会触发包的真正加载
+        (setq circadian-themes
+              '((:sunrise . modus-operandi)
+                (:sunset  . modus-vivendi))
+              calendar-latitude  39.90
+              calendar-longitude 116.40
+              calendar-location-name "Beijing")
+        :hook (after-init . circadian-setup))
+      ;; 初始 frame 设置
+      (setq initial-frame-alist '((top . 0.5)
+                                  (left . 0.5)
+                                  (width . 0.7)
+                                  (height . 0.85)
+                                  (fullscreen)))
 #+end_src
 
 ** 字体配置
@@ -200,7 +222,10 @@
                return (progn
                         (setq face-font-rescale-alist `((,font . 1.3)))
                         (set-fontset-font t 'han (font-spec :family font))))
-
+     ;; Specify font for all unicode characters
+      (cl-loop for font in '("Apple Symbols" "Segoe UI Symbol" "Symbola" "Symbol")
+               when (font-available-p font)
+               return (set-fontset-font t 'symbol (font-spec :family font) nil 'prepend))
       ;;Emoji
       (cl-loop for font in '("Noto Color Emoji" "Apple Color Emoji" "Segoe UI Emoji")
                when (font-available-p font)
@@ -221,42 +246,42 @@
 ** 图标与 Modeline
 
 #+begin_src emacs-lisp
-(use-package doom-modeline
-  :ensure t
-  ;; 【关键懒加载】: Emacs 初始化完成后再启动 modeline，不阻塞启动速度
-  :hook (after-init . doom-modeline-mode)
-  :init
-  ;; :init 区块的代码会在包加载前运行，用于预设变量
-  ;; ---------------------------------------------------------
-  ;; --- 基础外观 ---
-  (setq doom-modeline-height 30)        ;; Modeline 高度 (大一点更像现代编辑器)
-  (setq doom-modeline-bar-width 4)      ;; 左侧那个彩色指示条的宽度
-  (setq doom-modeline-hud nil)          ;; 关闭 HUD (不需要那种类似进度的波浪线)
-  (setq doom-modeline-window-width-limit 85) ;; 窗口如果在 85 字符以内，自动隐藏多余信息
-  ;; --- 图标与颜色 ---
-  (setq doom-modeline-icon t)           ;; 显示图标
-  (setq doom-modeline-major-mode-icon t);; 显示 Major Mode 图标
-  (setq doom-modeline-major-mode-color-icon t) ;; 图标显示彩色
-  (setq doom-modeline-buffer-state-icon t)     ;; 显示只读/修改状态图标
-  ;; --- 文件名显示风格 ---
-  ;; 选项: 'filename, 'truncate-upto-project, 'truncate-from-project, 'relative-to-project
-  ;; 推荐: 'truncate-upto-project (如果是项目文件，显示相对于项目的路径，否则显示文件名)
-  (setq doom-modeline-buffer-file-name-style 'filename)
-  ;; --- Git (Version Control) 配置 ---
-  (setq doom-modeline-vcs-max-length 15)   ;; 分支名最长显示 15 个字符，太长会自动截断
-  (setq doom-modeline-github nil)          ;; 如果不用 github forge 功能，设为 nil 减少请求
-  ;; --- Eglot / LSP 配置 ---
-  (setq doom-modeline-lsp t)            ;; 开启 LSP 状态显示
-  ;; 自定义 LSP 是否显示简单的图标还是文字，设置 t 会显示服务名 (如 Pyright)
-  ;; --- 杂项 ---
-  (setq doom-modeline-minor-modes nil)  ;; 【重要】隐藏 Minor Modes，保持界面清爽！
-  (setq doom-modeline-enable-word-count nil) ;; 不显示字数统计 (节省资源)
-  (setq doom-modeline-env-version t)    ;; 显示 Python/Ruby 等环境版本
+  (use-package doom-modeline
+    :ensure t
+    ;; 【关键懒加载】: Emacs 初始化完成后再启动 modeline，不阻塞启动速度
+    :hook (after-init . doom-modeline-mode)
+    :init
+    ;; :init 区块的代码会在包加载前运行，用于预设变量
+    ;; ---------------------------------------------------------
+    ;; --- 基础外观 ---
+    (setq doom-modeline-height 30)        ;; Modeline 高度 (大一点更像现代编辑器)
+    (setq doom-modeline-bar-width 4)      ;; 左侧那个彩色指示条的宽度
+    (setq doom-modeline-hud nil)          ;; 关闭 HUD (不需要那种类似进度的波浪线)
+    (setq doom-modeline-window-width-limit 85) ;; 窗口如果在 85 字符以内，自动隐藏多余信息
+    ;; --- 图标与颜色 ---
+    (setq doom-modeline-icon t)           ;; 显示图标
+    (setq doom-modeline-major-mode-icon t);; 显示 Major Mode 图标
+    (setq doom-modeline-major-mode-color-icon t) ;; 图标显示彩色
+    (setq doom-modeline-buffer-state-icon t)     ;; 显示只读/修改状态图标
+    ;; --- 文件名显示风格 ---
+    ;; 选项: 'filename, 'truncate-upto-project, 'truncate-from-project, 'relative-to-project
+    ;; 推荐: 'truncate-upto-project (如果是项目文件，显示相对于项目的路径，否则显示文件名)
+    (setq doom-modeline-buffer-file-name-style 'filename)
+    ;; --- Git (Version Control) 配置 ---
+    (setq doom-modeline-vcs-max-length 15)   ;; 分支名最长显示 15 个字符，太长会自动截断
+    (setq doom-modeline-github nil)          ;; 如果不用 github forge 功能，设为 nil 减少请求
+    ;; --- Eglot / LSP 配置 ---
+    (setq doom-modeline-lsp t)            ;; 开启 LSP 状态显示
+    ;; 自定义 LSP 是否显示简单的图标还是文字，设置 t 会显示服务名 (如 Pyright)
+    ;; --- 杂项 ---
+    (setq doom-modeline-minor-modes nil)  ;; 【重要】隐藏 Minor Modes，保持界面清爽！
+    (setq doom-modeline-enable-word-count nil) ;; 不显示字数统计 (节省资源)
+    (setq doom-modeline-env-version t)    ;; 显示 Python/Ruby 等环境版本
   )
 
-  (use-package nerd-icons
-    :ensure t
-    :after after-init-hook)
+    (use-package nerd-icons
+      :ensure t
+      :after after-init-hook)
 #+end_src
 
 * 编辑器设置

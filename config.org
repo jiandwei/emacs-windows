@@ -378,17 +378,17 @@
 ** 跳转 (Avy)
 
 #+begin_src emacs-lisp
-  (use-package avy
-    :defer t
-    :ensure t
-    :bind (("C-:" . avy-goto-char)
-           ("C-'" . avy-goto-char-2))
-    ;;:hook (after-init . avy-setup-default)
-    :config
-    (setq avy-all-windows nil
-          avy-all-windows-alt t
-          avy-background t
-          avy-style 'pre))
+    (use-package avy
+      :defer t
+      :ensure t
+      :bind (("C-:" . avy-goto-char)
+             ("C-\"" . avy-goto-char-2))
+      ;;:hook (after-init . avy-setup-default)
+      :config
+      (setq avy-all-windows nil
+            avy-all-windows-alt t
+            avy-background t
+            avy-style 'pre))
 #+end_src
 
 ** 自动配对
@@ -839,7 +839,7 @@
                                           ("Emacs Lisp" emacs-lisp)
                                           ("C" astyle)
                                           ("Python" ruff)
-                                          ("BibTeX" emacs-bibtex)))
+                                          ("BibTex" emacs-bibtex)))
     (add-hook 'format-all-mode-hook 'format-all-ensure-formatter))
 #+end_src
 
@@ -1708,8 +1708,8 @@
 #+begin_src emacs-lisp
 (with-eval-after-load 'ox-latex
   (setq org-latex-pdf-process '("latexmk -xelatex -quiet -shell-escape -f %f"))
-  (push '("elegantpaper"
-          "\\documentclass[lang=cn]{elegantpaper}
+  (push '(
+          "\\documentclass[lang=cn]{article}
                  [NO-DEFAULT-PACKAGES]
                  [PACKAGES]
                  [EXTRA]"
@@ -1719,7 +1719,7 @@
           ("\\paragraph{%s}" . "\\paragraph*{%s}")
           ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))
         org-latex-classes))
-#+end_src
+#+end_src 
 
 ** LaTeX Pretty Symbols
 

@@ -165,7 +165,7 @@
         (setq panel-title "Happy hacking, Emacs ♥  you"
               panel-show-file-path nil
               panel-min-left-padding 10
-              panel-path-max-length 35
+              panel-path-max-length 20
               ;; 地理位置 - 大连
               panel-latitude 38.9140
               panel-longitude 121.6147
@@ -1114,10 +1114,10 @@
 ** 全局常量与路径
 
 #+begin_src emacs-lisp
-(defvar my/org-root "c:/Users/wei/Documents/org/agenda/"
+(defvar my/org-root "C:/Users/wei/Documents/org/agenda/"
   "Agenda 文件的根目录。")
 
-(defvar my/denote-root "c:/Users/wei/Documents/org/notes/"
+(defvar my/denote-root "C:/Users/wei/Documents/org/notes/"
   "Denote 笔记存储目录。")
 
 (defun my/normalize-path (path)
@@ -1341,8 +1341,8 @@
     :config
     (denote-rename-buffer-mode 1)
     (setq denote-templates
-          `((report . "* 摘要\n\n* 引言\n\n* 主体\n** 方法\n** 结果\n\n* 结论\n\n* 参考文献\n\n")
-            (journal . ,(concat "* 今日总结"
+          `((报告 . "* 摘要\n\n* 引言\n\n* 主体\n** 方法\n** 结果\n\n* 结论\n\n* 参考文献\n\n")
+            (日记 . ,(concat "* 今日总结"
                                 "\n\n"
                                 "* 待办事项"
                                 "\n** 已完成"
@@ -1350,7 +1350,7 @@
                                 "\n\n"
                                 "* 思考与感悟"
                                 "\n\n"))
-            (literature . ,(concat "* 文献信息"
+            (文献 . ,(concat "* 文献信息"
                                    "\n** 作者"
                                    "\n** 发表时间"
                                    "\n** 期刊/会议"
@@ -1363,7 +1363,7 @@
                                    "\n\n"
                                    "* 与已有笔记的关联"
                                    "\n\n"))
-            (draft . ,(concat "* 大纲"
+            (草稿 . ,(concat "* 大纲"
                               "\n\n"
                               "* 初稿"
                               "\n\n"

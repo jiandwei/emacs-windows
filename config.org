@@ -187,11 +187,11 @@
         :init
         ;; 这里写变量设置，不会触发包的真正加载
         (setq circadian-themes
-              '((:sunrise . modus-operandi)
-                (:sunset  . modus-vivendi))
-              calendar-latitude  39.90
-              calendar-longitude 116.40
-              calendar-location-name "Beijing")
+              '((:sunrise . dichromacy)
+                (:sunset  . misterioso))
+              calendar-latitude  38.9140
+              calendar-longitude 121.6147
+              calendar-location-name "Dalian")
         :hook (after-init . circadian-setup))
       ;; 初始 frame 设置
       (setq initial-frame-alist '((top . 0.5)

@@ -247,41 +247,59 @@
 
 #+begin_src emacs-lisp
   (use-package doom-modeline
-    :ensure t
-    ;; 【关键懒加载】: Emacs 初始化完成后再启动 modeline，不阻塞启动速度
-    :hook (after-init . doom-modeline-mode)
-    :init
-    ;; :init 区块的代码会在包加载前运行，用于预设变量
-    ;; ---------------------------------------------------------
-    ;; --- 基础外观 ---
-    (setq doom-modeline-height 30)        ;; Modeline 高度 (大一点更像现代编辑器)
-    (setq doom-modeline-bar-width 4)      ;; 左侧那个彩色指示条的宽度
-    (setq doom-modeline-hud nil)          ;; 关闭 HUD (不需要那种类似进度的波浪线)
-    (setq doom-modeline-window-width-limit 85) ;; 窗口如果在 85 字符以内，自动隐藏多余信息
-    ;; --- 图标与颜色 ---
-    (setq doom-modeline-icon t)           ;; 显示图标
-    (setq doom-modeline-major-mode-icon t);; 显示 Major Mode 图标
-    (setq doom-modeline-major-mode-color-icon t) ;; 图标显示彩色
-    (setq doom-modeline-buffer-state-icon t)     ;; 显示只读/修改状态图标
-    ;; --- 文件名显示风格 ---
-    ;; 选项: 'filename, 'truncate-upto-project, 'truncate-from-project, 'relative-to-project
-    ;; 推荐: 'truncate-upto-project (如果是项目文件，显示相对于项目的路径，否则显示文件名)
-    (setq doom-modeline-buffer-file-name-style 'filename)
-    ;; --- Git (Version Control) 配置 ---
-    (setq doom-modeline-vcs-max-length 15)   ;; 分支名最长显示 15 个字符，太长会自动截断
-    (setq doom-modeline-github nil)          ;; 如果不用 github forge 功能，设为 nil 减少请求
-    ;; --- Eglot / LSP 配置 ---
-    (setq doom-modeline-lsp t)            ;; 开启 LSP 状态显示
-    ;; 自定义 LSP 是否显示简单的图标还是文字，设置 t 会显示服务名 (如 Pyright)
-    ;; --- 杂项 ---
-    (setq doom-modeline-minor-modes nil)  ;; 【重要】隐藏 Minor Modes，保持界面清爽！
-    (setq doom-modeline-enable-word-count nil) ;; 不显示字数统计 (节省资源)
-    (setq doom-modeline-env-version t)    ;; 显示 Python/Ruby 等环境版本
-  )
+    :ensure t                          ; 自动安装包
+    :defer t                           ; 延迟加载，不影响启动速度
+    :hook (after-init . doom-modeline-mode) ; 初始化完成后启用
+    :custom
+    ;; ========== 基础外观 ==========
+    (doom-modeline-height 25)          ; Modeline 高度（像素，按需调整）
+    (doom-modeline-bar-width 3)        ; 左侧彩色条宽度（视觉点缀）
+    (doom-modeline-hud nil)            ; 关闭全屏 HUD 模式（非必要）
+    (doom-modeline-icon t)             ; 启用图标（依赖 all-the-icons）
+    (doom-modeline-major-mode-icon t)  ; 显示主模式图标
+    (doom-modeline-major-mode-color-icon t) ; 主模式图标彩色化
+    (doom-modeline-minor-modes t)      ; 显示次要模式（如 indent-guide）
+    (doom-modeline-unicode-fallback t) ; 无图标时用 Unicode 替代
 
-    (use-package nerd-icons
-      :ensure t
-      :after after-init-hook)
+    ;; ========== 文件名/缓冲区 ==========
+    (doom-modeline-buffer-file-name-style 'filename) ; 文件名截断到项目根
+    (doom-modeline-buffer-state-icon t) ; 显示缓冲区状态图标（只读/修改）
+    (doom-modeline-window-width-limit fill-column) ; 窗口宽度限制（避免过长）
+
+    ;; ========== Git 版本控制 ==========
+    (doom-modeline-git-branch t)       ; 显示 Git 分支
+    (doom-modeline-git-tracked t)      ; 显示已跟踪文件状态
+    (doom-modeline-git-untracked t)    ; 显示未跟踪文件状态
+    (doom-modeline-git-modified t)     ; 显示修改文件状态
+    (doom-modeline-git-max-length 20)  ; Git 分支名最大长度（避免过长）
+
+    ;; ========== LSP 编程支持 ==========
+    (doom-modeline-lsp t)              ; 显示 LSP 状态（报错/警告数）
+    (doom-modeline-lsp-progress t)     ; 显示 LSP 初始化/索引进度
+    (doom-modeline-lsp-name t)         ; 显示 LSP 服务器名称（如 pyright/gopls）
+
+    ;; ========== 系统信息 ==========
+    (doom-modeline-time t)             ; 显示时间
+    (doom-modeline-time-format "%H:%M") ; 时间格式（24小时制）
+    (doom-modeline-battery t)          ; 笔记本显示电池百分比
+    (doom-modeline-battery-format "%p%%") ; 电池格式
+
+    ;; ========== 性能优化 ==========
+    (doom-modeline-update-interval 1)  ; 更新间隔（秒，默认1，值越大越省资源）
+    (doom-modeline-enable-word-count nil) ; 默认关闭字数统计（按需开启）
+    :config
+    ;;  自定义颜色（适配 Doom One 主题，可根据自己的主题调整）
+    (custom-set-faces
+     '(doom-modeline-buffer-modified ((t (:foreground "#ff6b6b")))) ; 缓冲区修改（红）
+     '(doom-modeline-git-branch ((t (:foreground "#4ec9b0"))))      ; Git 分支（青）
+     '(doom-modeline-lsp-success ((t (:foreground "#69db7c"))))     ; LSP 正常（绿）
+     '(doom-modeline-time ((t (:foreground "#dcdcaa"))))            ; 时间（黄）
+     '(doom-modeline-battery-full ((t (:foreground "#69db7c"))))    ; 电池满（绿）
+     '(doom-modeline-battery-low ((t (:foreground "#ff6b6b"))))))    ; 电池低（红）
+
+  (use-package nerd-icons
+    :ensure t
+    :after after-init-hook)
 #+end_src
 
 * 编辑器设置

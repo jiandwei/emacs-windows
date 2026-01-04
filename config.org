@@ -156,44 +156,44 @@
 * UI 界面
 ** 主题配置
 #+begin_src emacs-lisp
-      (use-package panel
-        :vc (panel :url "https://github.com/LuciusChen/panel.git"
-                   :branch "main")
-        :defer t
-        :config
-        ;; 基础显示配置
-        (setq panel-title "Happy hacking, Emacs ♥  you"
-              panel-show-file-path nil
-              panel-min-left-padding 10
-              panel-path-max-length 20
-              ;; 地理位置 - 大连
-              panel-latitude 38.9140
-              panel-longitude 121.6147
-              ;; 图片配置
-              panel-image-file (concat (locate-user-emacs-file "etc/bitmap.png"))
-              panel-image-width 400
-              panel-image-height 169))
-    (panel-create-hook)
+    (use-package panel
+      :vc (panel :url "https://github.com/LuciusChen/panel.git"
+                 :branch "main")
+      :defer t
+      :config
+      ;; 基础显示配置
+      (setq panel-title "Happy hacking, Emacs ♥  you"
+            panel-show-file-path nil
+            panel-min-left-padding 10
+            panel-path-max-length 20
+            ;; 地理位置 - 大连
+            panel-latitude 38.9140
+            panel-longitude 121.6147
+            ;; 图片配置
+            panel-image-file (concat (locate-user-emacs-file "etc/bitmap.png"))
+            panel-image-width 400
+            panel-image-height 169))
+  (panel-create-hook)
 
-      (use-package circadian
-        :ensure t
-        :defer t
-        ;; 不要在 load-path 扫描时就加载包
-        :init
-        ;; 这里写变量设置，不会触发包的真正加载
-        (setq circadian-themes
-              '((:sunrise . dichromacy)
-                (:sunset  . misterioso))
-              calendar-latitude  38.9140
-              calendar-longitude 121.6147
-              calendar-location-name "Dalian")
-        :hook (after-init . circadian-setup))
-      ;; 初始 frame 设置
-      (setq initial-frame-alist '((top . 0.5)
-                                  (left . 0.5)
-                                  (width . 0.7)
-                                  (height . 0.85)
-                                  (fullscreen)))
+    (use-package circadian
+      :ensure t
+      :defer t
+      ;; 不要在 load-path 扫描时就加载包
+      :init
+      ;; 这里写变量设置，不会触发包的真正加载
+      (setq circadian-themes
+            '((:sunrise . dichromacy)
+              (:sunset  . misterioso))
+            calendar-latitude  38.9140
+            calendar-longitude 121.6147
+            calendar-location-name "Dalian")
+      :hook (after-init . circadian-setup))
+    ;;初始 frame 设置
+    ;; (setq initial-frame-alist '((top . 0.5)
+    ;;                             (left . 0.5)
+    ;;                             (width . 0.7)
+    ;;                             (height . 0.85)
+    ;;                             (fullscreen)))
 #+end_src
 
 ** 字体配置
@@ -1162,6 +1162,30 @@
     (org-set-emph-re 'org-emphasis-regexp-components org-emphasis-regexp-components)
     (org-element-update-syntax)
     (setq my/org-optimized-p t)))
+;; 保证任何 org 文件在第一次保存时自动插入 CSS 链接
+(defun my/ensure-org-css-link ()
+  "如果当前 org 文件没有 gongzhitaao 的 CSS 链接，则补上一行。"
+  (when (and (eq major-mode 'org-mode)
+             (not (save-excursion
+                    (goto-char (point-min))
+                    (re-search-forward "org\\.css" nil t))))
+    (save-excursion
+      (goto-char (point-min))
+      ;; 定位到最后一个 #+ 关键字行
+      (let ((pos (point-min)))
+        (while (re-search-forward "^#\\+[a-zA-Z]+:" nil t)
+          (setq pos (line-end-position)))
+        (goto-char pos)
+        (forward-line 1)
+        (insert "#+HTML_HEAD: <link rel=\"stylesheet\" type=\"text/css\" href=\"https://gongzhitaao.org/orgcss/org.css\"/>\n")))
+    ;; 保存一次，避免用户下次再手动保存才落盘
+    (save-buffer)))
+(add-hook 'org-mode-hook
+          (lambda ()
+            ;; 只在文件从未保存过（新文件）或者本次 Emacs 第一次打开时跑一次
+            (unless (bound-and-true-p my/css-link-checked)
+              (setq-local my/css-link-checked t)
+              (add-hook 'after-save-hook #'my/ensure-org-css-link nil t))))
 #+end_src
 
 ** Org-mode 核心配置

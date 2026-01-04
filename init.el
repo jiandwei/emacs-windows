@@ -1,45 +1,2238 @@
-;;; init.el --- Smart configuration loader -*- lexical-binding: t -*-
-;;; Commentary:
-;; 智能判断是否需要从 config.org 重新生成 config.el
-;; 只有当 config.org 比 config.el 新时才重新生成
-
-;;; Code:
-
-;; ==================== 包管理 ====================
+;; -*- lexical-binding: t; -*-
+;;; init.el --- generated from init.org  -*- lexical-binding: t; -*-
+;; ========== 包管理 / use-package ==========
 (require 'package)
 (setq package-archives '(("gnu"    . "https://mirrors.ustc.edu.cn/elpa/gnu/")
                          ("melpa"  . "https://mirrors.ustc.edu.cn/elpa/melpa/")
                          ("nongnu" . "https://mirrors.ustc.edu.cn/elpa/nongnu/")))
+;; 避免重复初始化带来开销（同时也避免某些配置误触 refresh）
+(setq package-enable-at-startup nil)
+(package-initialize)
 
-;; Bootstrap use-package
+;; Bootstrap use-package（仅当缺失时执行一次 refresh）
 (unless (package-installed-p 'use-package)
+ (when (null package-archive-contents)
+    (package-refresh-contents))
   (package-refresh-contents)
   (package-install 'use-package))
+(eval-when-compile (require 'use-package))
+(setq use-package-always-ensure nil)
+(setq use-package-expand-minimally t)
 
-;; ==================== 智能加载配置 ====================
-(let* ((org-file (expand-file-name "config.org" user-emacs-directory))
-       (el-file (expand-file-name "config.el" user-emacs-directory))
-       (org-exists (file-exists-p org-file))
-       (el-exists (file-exists-p el-file))
-       (org-newer (and org-exists el-exists
-                       (time-less-p (file-attribute-modification-time
-                                     (file-attributes el-file))
-                                    (file-attribute-modification-time
-                                     (file-attributes org-file))))))
+;; 命令行选项
+  (setq command-line-x-option-alist nil)
 
-  (cond
-   ;; 情况1: config.org 更新了，需要重新 tangle
-   (org-newer
-    (require 'org)
-    (org-babel-load-file org-file))
+  ;; 进程 IO 优化
+  (setq read-process-output-max #x10000)  ; 64kb
 
-   ;; 情况2: config.el 存在且是最新的，直接加载
-   (el-exists
-    (load-file el-file))
+  ;; 禁用 ffap 域名检测
+  (setq ffap-machine-p-known 'reject)
 
-   ;; 情况3: 只有 config.org，首次生成
-   (org-exists
-    (require 'org)
-    (org-babel-load-file org-file))))
+  ;; 个人信息
+  (setq user-full-name "Wei"
+        user-mail-address "Jiawei0655@gmail.com")
 
+  ;; UTF-8 编码
+  (when (fboundp 'set-charset-priority)
+    (set-charset-priority 'unicode))
+  (prefer-coding-system 'utf-8)
+  (setq locale-coding-system 'utf-8)
+  (setq system-time-locale "C")
+
+  ;; GC 管理
+  (use-package gcmh
+    :ensure t
+    :diminish
+    :hook (emacs-startup . gcmh-mode)
+    :custom
+    (gcmh-idle-delay 'auto)
+    (gcmh-auto-idle-delay-factor 10)
+    (gcmh-high-cons-threshold #x12800000))
+
+  ;; Server 模式
+ 
+(use-package server
+  :ensure nil
+  :hook (after-init . server-mode))
+
+  ;; 保存位置
+  (use-package saveplace
+    :defer t
+     :hook (after-init . save-place-mode)
+    :config (setq save-place-file (locate-user-emacs-file "etc/places")))
+
+  ;; 最近文件
+  (use-package recentf
+    :defer 1
+    :bind (("C-x C-r" . recentf-open-files))
+     :hook (after-init . recentf-mode)
+    :custom
+    (recentf-max-saved-items 300)
+    (recentf-auto-cleanup 'never)
+    (recentf-exclude
+     '("^/private/tmp/"
+       "^/var/folders/"
+       "^/tmp/"
+       "/ssh\\(x\\)?:"
+       "/su\\(do\\)?:"
+       "^/usr/include/"
+       "/TAGS\\'"
+       "COMMIT_EDITMSG\\'"))
+    :config (setq recentf-save-file (locate-user-emacs-file "etc/recentf")))
+
+  ;; 历史记录
+  (use-package savehist
+    :hook (after-init . savehist-mode)
+    :init (setq enable-recursive-minibuffers t
+                history-length 1000
+                savehist-file (locate-user-emacs-file "etc/history")
+                savehist-additional-variables '(mark-ring
+                                                global-mark-ring
+                                                search-ring
+                                                regexp-search-ring
+                                                extended-command-history)
+                savehist-autosave-interval 300))
+
+(use-package simple
+  :ensure nil
+  :hook ((after-init . size-indication-mode)
+         (text-mode . visual-line-mode)
+         ((prog-mode markdown-mode conf-mode) . enable-trailing-whitespace))
+  :init
+  (setq column-number-mode t
+        line-number-mode t
+        line-move-visual nil
+        track-eol t
+        set-mark-command-repeat-pop t)
+
+  (setq-default show-trailing-whitespace nil)
+  (defun enable-trailing-whitespace ()
+    "Show trailing spaces and delete on saving."
+    (setq show-trailing-whitespace t)
+    (add-hook 'before-save-hook #'delete-trailing-whitespace nil t))
+
+  ;; 美化进程列表
+  (with-no-warnings
+    (defun my/list-processes--prettify ()
+      "Prettify process list."
+      (when-let* ((entries tabulated-list-entries))
+        (setq tabulated-list-entries nil)
+        (dolist (p (process-list))
+          (when-let* ((val (cadr (assoc p entries)))
+                      (name (aref val 0))
+                      (pid (aref val 1))
+                      (status (aref val 2))
+                      (status (list status
+                                    'face
+                                    (if (memq status '(stop exit closed failed))
+                                        'error
+                                      'success)))
+                      (buf-label (aref val 3))
+                      (tty (list (aref val 4) 'face 'font-lock-doc-face))
+                      (thread (list (aref val 5) 'face 'font-lock-doc-face))
+                      (cmd (list (aref val 6) 'face 'completions-annotations)))
+            (push (list p (vector name pid status buf-label tty thread cmd))
+                  tabulated-list-entries)))))
+    (advice-add #'list-processes--refresh :after #'my/list-processes--prettify)))
+
+;; 简化确认
+(setq use-short-answers t)
+(setq y-or-n-p-use-read-key t
+      read-char-choice-use-read-key t)
+
+;; 默认设置
+(setq-default major-mode 'text-mode
+              fill-column 80
+              tab-width 4)
+
+(setq visible-bell t
+      inhibit-compacting-font-caches t
+      delete-by-moving-to-trash t
+      make-backup-files nil
+      auto-save-default nil
+      uniquify-buffer-name-style 'post-forward-angle-brackets
+      adaptive-fill-regexp "[ t]+|[ t]*([0-9]+.|*+)[ t]*"
+      adaptive-fill-first-line-regexp "^* *$"
+      sentence-end "\\([。！？]\\|……\\|[.?!][]\"')}]*\\($\\|[ \t]\\)\\)[ \t\n]*"
+      sentence-end-double-space nil
+      word-wrap-by-category t)
+
+(use-package panel
+    :vc (panel :url "https://github.com/LuciusChen/panel.git"
+               :branch "main")
+    :hook (after-init . panel-create-hook)   ;; 或者 (emacs-startup . panel-create-hook)
+    :config
+    ;; 基础显示配置
+    (setq panel-title "Happy hacking, Emacs ♥  you"
+          panel-show-file-path nil
+          panel-min-left-padding 10
+          panel-path-max-length 20
+          ;; 地理位置 - 大连
+          panel-latitude 38.9140
+          panel-longitude 121.6147
+          ;; 图片配置
+          panel-image-file (concat (locate-user-emacs-file "etc/bitmap.png"))
+          panel-image-width 400
+          panel-image-height 169))
+;; (panel-create-hook)
+
+  (use-package circadian
+    :ensure t
+    :defer t
+    ;; 不要在 load-path 扫描时就加载包
+    :init
+    ;; 这里写变量设置，不会触发包的真正加载
+    (setq circadian-themes
+          '((:sunrise . dichromacy)
+            (:sunset  . misterioso))
+          calendar-latitude  38.9140
+          calendar-longitude 121.6147
+          calendar-location-name "Dalian")
+    :hook (after-init . circadian-setup))
+  ;;初始 frame 设置
+  ;; (setq initial-frame-alist '((top . 0.5)
+  ;;                             (left . 0.5)
+  ;;                             (width . 0.7)
+  ;;                             (height . 0.85)
+  ;;                             (fullscreen)))
+
+(defun font-available-p (font-name)
+  "Return non-nil if FONT-NAME can be found."
+  (find-font (font-spec :name font-name)))
+
+;;(defvar my/han-font nil
+;;   "当前实际用到的汉字字体家族，给后面 bold 映射用。")
+
+;; (defun my/setup-fonts ()
+;;  "Apply fonts to the current frame."	
+ ;;  (when (display-graphic-p)
+;;     ;; 1. 英文字体
+;;     (set-face-attribute 'default nil
+;;                         :font "IosevkaTerm NF"
+;;                         :height 120)
+;;     ;; 2. 中文字体（找到后把名字存到 my/han-font）
+;;     (cl-loop for font in '("Sarasa Mono SC" "LXGW Neo Xihei" "LXGW WenKai Mono" "Microsoft Yahei UI")
+;;              when (font-available-p font)
+;;              return (progn
+;;                       (setq face-font-rescale-alist `((,font . 1.3)))
+;;                       (set-fontset-font t 'han (font-spec :family font))
+;;                       font))
+;;     ;; 3. 符号/emoji 维持你原来的逻辑
+;;     (cl-loop for font in '("Symbols Nerd Font Mono" "Apple Symbols" "Segoe UI Symbol" "Symbola" "Symbol")
+;;              when (font-available-p font)
+;;              return (set-fontset-font t 'symbol (font-spec :family font) nil 'prepend))
+;;     (cl-loop for font in '("Noto Color Emoji" "Apple Color Emoji" "Segoe UI Emoji")
+;;              when (font-available-p font)
+;;              do (set-fontset-font t 'emoji (font-spec :family font) nil 'prepend)
+;;              and return nil)))
+
+;; ;; 下面 3 行你原来就有，完全不用动
+;; (add-hook 'after-init-hook #'my/setup-fonts)
+;; (add-hook 'after-make-frame-functions
+;;           (lambda (frame)
+;;             (with-selected-frame frame
+;;               (my/setup-fonts))))
+;; (add-hook 'circadian-after-load-theme-hook
+;;           (lambda (_theme)
+;;             (my/setup-fonts)))
+
+(defvar my/font-cache nil) ;; plist: (:han "Sarasa..." :symbol "..." :emoji "...")
+(defun my/detect-fonts ()
+  (unless my/font-cache
+    (setq my/font-cache
+          (list
+           :han (cl-loop for f in '("Sarasa Mono SC" "LXGW Neo Xihei" "LXGW WenKai Mono" "Microsoft Yahei UI")
+                         when (font-available-p f) return f)
+           :symbol (cl-loop for f in '("Symbols Nerd Font Mono" "Apple Symbols" "Segoe UI Symbol" "Symbola" "Symbol")
+                            when (font-available-p f) return f)
+           :emoji (cl-loop for f in '("Noto Color Emoji" "Apple Color Emoji" "Segoe UI Emoji")
+                           when (font-available-p f) return f)))))
+
+(defun my/apply-fonts-to-frame (&optional frame)
+  (with-selected-frame (or frame (selected-frame))
+    (when (display-graphic-p)
+      (my/detect-fonts)
+      (set-face-attribute 'default nil :font "IosevkaTerm NF" :height 120)
+      (let ((han (plist-get my/font-cache :han))
+            (sym (plist-get my/font-cache :symbol))
+            (emo (plist-get my/font-cache :emoji)))
+        (when han
+          (setq face-font-rescale-alist `((,han . 1.3)))
+          (set-fontset-font t 'han (font-spec :family han)))
+        (when sym
+          (set-fontset-font t 'symbol (font-spec :family sym) nil 'prepend))
+        (when emo
+          (set-fontset-font t 'emoji (font-spec :family emo) nil 'prepend))))))
+
+(add-hook 'after-init-hook #'my/apply-fonts-to-frame)
+(add-hook 'after-make-frame-functions #'my/apply-fonts-to-frame)
+(add-hook 'circadian-after-load-theme-hook (lambda (_theme) (my/apply-fonts-to-frame)))
+
+(use-package nerd-icons
+  :ensure t)
+
+(use-package emacs
+  :custom
+  (initial-major-mode 'text-mode)
+  (initial-scratch-message "")
+  (menu-bar-mode nil)
+  (scroll-bar-mode nil)
+  (tool-bar-mode nil)
+  (inhibit-startup-screen t)
+  (delete-selection-mode t)
+  (electric-indent-mode nil)
+  (electric-pair-mode t)
+  (blink-cursor-mode nil)
+  (global-auto-revert-mode t)
+  (mouse-wheel-progressive-speed nil)
+  (scroll-conservatively 10)
+  (tab-width 4)
+  (use-dialog-box nil)
+  (make-backup-files nil)
+  :config
+  ;; 运行时状态目录
+  (setq server-auth-dir (locate-user-emacs-file "etc/server/")
+        auto-save-list-file-prefix (locate-user-emacs-file "etc/auto-save-list/.saves-"))
+  (dolist (dir '("etc/" "etc/server/" "etc/auto-save-list/" "etc/org-persist/" "etc/transient/" "etc/persistent-scratch/"))
+    (make-directory (locate-user-emacs-file dir) t))
+
+  (setq custom-file (locate-user-emacs-file "etc/custom-vars.el"))
+  (load custom-file 'noerror 'nomessage)
+  (setq warning-minimum-level :emergency)
+  (setq default-directory "C:/Users/wei/Documents/")
+  ;; 调整frame-title
+  ;; 主窗口标题仅显示 buffer 名
+  (setq frame-title-format "%b")
+  ;; 任务栏/图标标题也同步（可选）
+  (setq icon-title-format "%b")
+  ;; 像素级调整窗口
+  (setq window-resize-pixelwise t
+        frame-resize-pixelwise t)
+
+  ;; Linux 特定
+  (setq x-gtk-use-system-tooltips t
+        x-gtk-use-native-input t
+        x-underline-at-descent-line t)
+  (setq native-comp-async-report-warnings-errors nil)
+
+  ;; Electric mode
+  (electric-pair-mode t)
+
+  ;; 长行优化
+  (setq-default bidi-paragraph-direction 'left-to-right)
+  (setq bidi-inhibit-bpa t)
+
+  ;; 无锁文件
+  (setq create-lockfiles nil)
+
+  ;; 总是加载最新文件
+  (setq load-prefer-newer t)
+
+  ;; 剪贴板设置
+  (setq select-enable-primary t
+        select-enable-clipboard t)
+
+  ;; 字体缓存不 GC
+  (setq inhibit-compacting-font-caches t)
+
+  ;; 显示改进
+  (setq display-raw-bytes-as-hex t
+        redisplay-skip-fontification-on-input t)
+
+  ;; 禁用响铃
+  (setq ring-bell-function 'ignore)
+
+  ;; 禁用光标闪烁
+  (setq blink-cursor-mode nil)
+
+  ;; 平滑滚动
+  (setq scroll-step 2
+        scroll-margin 2
+        hscroll-step 2
+        hscroll-margin 2
+        scroll-conservatively 101
+        scroll-preserve-screen-position 'always)
+
+  (setq auto-hscroll-mode 'current-line)
+  (setq auto-window-vscroll nil)
+  (setq mouse-yank-at-point t)
+  (setq-default fill-column 80)
+
+  ;; 将 _ 视为单词组成部分
+  (add-hook 'after-change-major-mode-hook
+            (lambda ()
+              (modify-syntax-entry ?_ "w")))
+
+  ;; 禁用 tabs
+  (setq-default indent-tabs-mode nil)
+  (setq-default tab-width 4)
+
+  ;; 字体大小
+  (set-face-attribute 'default nil :height 110)
+
+  ;; 启用被禁用的命令
+  (put 'narrow-to-defun 'disabled nil)
+  (put 'narrow-to-page 'disabled nil)
+  (put 'narrow-to-region 'disabled nil)
+  (put 'dired-find-alternate-file 'disabled nil)
+  (put 'list-timers 'disabled nil)
+  (put 'list-threads 'disabled nil)
+
+  (with-eval-after-load 'help-fns
+    (put 'help-fns-edit-variable 'disabled nil))
+  :bind (([escape] . keyboard-escape-quit)))
+
+;; 自动重新加载
+(global-auto-revert-mode 1)
+
+(use-package delsel
+  :ensure nil
+  :hook (after-init . delete-selection-mode))
+
+(use-package avy
+  :defer t
+  :ensure t
+  :bind (("C-:" . avy-goto-char)
+         ("C-\"" . avy-goto-char-2))
+  ;;:hook (after-init . avy-setup-default)
+  :config
+  (setq avy-all-windows nil
+        avy-all-windows-alt t
+        avy-background t
+        avy-style 'pre))
+
+(use-package elec-pair
+  :ensure nil
+  :hook (after-init . electric-pair-mode)
+  :config
+  (setq electric-pair-inhibit-predicate 'electric-pair-conservative-inhibit))
+
+(use-package hungry-delete
+  :ensure t
+  :diminish
+  :hook (after-init . global-hungry-delete-mode)
+  :init
+  (setq hungry-delete-chars-to-skip " \t\f\v"
+        hungry-delete-except-modes
+        '(help-mode minibuffer-mode minibuffer-inactive-mode calc-mode)))
+
+(use-package mwim
+  :ensure t
+  :bind (([remap move-beginning-of-line] . mwim-beginning)
+         ([remap move-end-of-line] . mwim-end)))
+
+(use-package so-long
+  :ensure t
+  :hook (after-init . global-so-long-mode))
+
+(use-package emacs
+  :init
+  (setq completion-cycle-threshold 3)
+  (when (boundp 'read-extended-command-predicate)
+    (setq read-extended-command-predicate
+          #'command-completion-default-include-p))
+  (setq tab-always-indent 'complete))
+
+(use-package orderless
+  :ensure t
+  :after vertico
+  :defer t
+  :custom
+  (completion-styles '(orderless basic))
+  (completion-category-overrides '((file (styles basic partial-completion))))
+  (completion-category-defaults nil) ;; Disable defaults, use our settings    
+  (orderless-component-separator #'orderless-escapable-split-on-space))
+
+(use-package pinyinlib
+  :ensure t
+  :after orderless
+  :autoload pinyinlib-build-regexp-string
+  :init
+  (defun completion--regex-pinyin (str)
+    (orderless-regexp (pinyinlib-build-regexp-string str)))
+  (add-to-list 'orderless-matching-styles 'completion--regex-pinyin))
+
+(use-package vertico
+  :ensure t
+  :bind (:map vertico-map
+         ("RET" . vertico-directory-enter)
+         ("DEL" . vertico-directory-delete-char)
+         ("M-DEL" . vertico-directory-delete-word))
+  :hook ((after-init . vertico-mode)
+         (rfn-eshadow-update-overlay . vertico-directory-tidy))
+  :custom
+  (vertico-resize t)
+  (vertico-cycle t)
+  (vertico-resize nil)
+  (vertico-count 15))
+
+(use-package marginalia
+  :ensure t
+  :after vertico
+  :hook (after-init . marginalia-mode)
+  :config
+  (defun my/marginalia-annotate-command (cand)
+    "Annotate command CAND with its documentation string."
+    (when-let* ((sym (intern-soft cand)))
+      (concat
+       (when (member sym minor-mode-list)
+         (if (and (boundp sym) (symbol-value sym))
+             (propertize " (On)" 'face 'marginalia-on)
+           (propertize " (Off)" 'face 'marginalia-off)))
+       (marginalia-annotate-binding cand)
+       (marginalia--documentation (marginalia--function-doc sym)))))
+  (setf (alist-get 'command marginalia-annotator-registry)
+        '(my/marginalia-annotate-command marginalia-annotate-binding builtin none)))
+
+(use-package consult-dir
+  :ensure t
+  :after consult)
+(use-package consult
+  :ensure t
+  :hook (completion-list-mode . consult-preview-at-point-mode)
+  :defer t
+  :bind (([remap imenu] . consult-imenu)
+         ([remap isearch-forward] . consult-line)
+         ([remap isearch-backward] . consult-line)
+         ([remap find-file-read-only] . consult-recent-file)
+         ([remap list-directory] . consult-dir)
+         ([remap goto-line] . consult-goto-line)
+         ([remap bookmark-jump] . consult-bookmark)
+         ([remap recentf-open-files] . consult-recent-file)
+         ([remap repeat-complex-command] . consult-complex-command)
+         ([remap jump-to-register] . consult-register-load)
+         ([remap point-to-register] . consult-register-store))
+  :config
+  (with-eval-after-load 'xref
+    (setq xref-show-xrefs-function #'consult-xref
+          xref-show-definitions-function #'consult-xref))
+
+  (defvar consult-colors-history nil)
+  (autoload 'list-colors-duplicates "facemenu")
+  (autoload 'consult--read "consult")
+
+  (defun consult-colors-emacs (color)
+    "Show a list of all supported colors."
+    (interactive
+     (list (consult--read (list-colors-duplicates (defined-colors))
+                          :prompt "Emacs color: "
+                          :require-match t
+                          :category 'color
+                          :history '(:input consult-colors-history))))
+    (insert color))
+
+  (defun consult-colors--web-list ()
+    "Return list of CSS colors."
+    (require 'shr-color)
+    (sort (mapcar #'downcase (mapcar #'car shr-color-html-colors-alist))
+          #'string-lessp))
+
+  (defun consult--orderless-regexp-compiler (input type &rest _config)
+    (setq input (orderless-pattern-compiler input))
+    (cons
+     (mapcar (lambda (r) (consult--convert-regexp r type)) input)
+     (lambda (str) (orderless--highlight input str))))
+
+  (defun consult-colors-web (color)
+    "Show a list of all CSS colors."
+    (interactive
+     (list (consult--read (consult-colors--web-list)
+                          :prompt "Color: "
+                          :require-match t
+                          :category 'color
+                          :history '(:input consult-colors-history))))
+    (insert color))
+
+  (with-no-warnings
+    (consult-customize consult-ripgrep consult-fd
+                       consult-bookmark consult-goto-line consult-theme
+                       consult-recent-file
+                       consult-buffer
+                       :preview-key '(:debounce 0.2 any)))
+
+  (setq register-preview-delay 0.5
+        register-preview-function #'consult-register-format)
+
+  :custom
+  (consult-fontify-preserve nil)
+  (consult-async-min-input 2)
+  (consult-async-refresh-delay 0.15)
+  (consult-async-input-throttle 0.2)
+  (consult-async-input-debounce 0.1))
+
+(use-package embark
+  :ensure t
+  :bind (([remap describe-bindings] . embark-bindings)
+         :map minibuffer-local-map
+         ("M-o" . embark-act)
+         ("C-c C-c" . embark-export)
+         ("M-." . my/embark-preview)
+         ("C-c C-o" . embark-collect))
+  :init
+  (setq prefix-help-command #'embark-prefix-help-command)
+  :config
+  (defun my/embark-preview ()
+    "Previews candidate in vertico buffer."
+    (interactive)
+    (unless (bound-and-true-p consult--preview-function)
+      (save-selected-window
+        (let ((embark-quit-after-action nil))
+          (embark-dwim)))))
+
+  (add-to-list 'display-buffer-alist
+               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none))))
+
+  (with-eval-after-load 'which-key
+    (defun embark-which-key-indicator ()
+      "An embark indicator that displays keymaps using which-key."
+      (lambda (&optional keymap targets prefix)
+        (if (null keymap)
+            (which-key--hide-popup-ignore-command)
+          (which-key--show-keymap
+           (if (eq (plist-get (car targets) :type) 'embark-become)
+               "Become"
+             (format "Act on %s '%s'%s"
+                     (plist-get (car targets) :type)
+                     (embark--truncate-target (plist-get (car targets) :target))
+                     (if (cdr targets) "…" "")))
+           (if prefix
+               (pcase (lookup-key keymap prefix 'accept-default)
+                 ((and (pred keymapp) km) km)
+                 (_ (key-binding prefix 'accept-default)))
+             keymap)
+           nil nil t (lambda (binding)
+                       (not (string-suffix-p "-argument" (cdr binding))))))))
+
+    (setq embark-indicators
+          '(embark-which-key-indicator
+            embark-highlight-indicator
+            embark-isearch-highlight-indicator))
+
+    (defun embark-hide-which-key-indicator (fn &rest args)
+      "Hide which-key indicator immediately."
+      (which-key--hide-popup-ignore-command)
+      (let ((embark-indicators
+             (remq #'embark-which-key-indicator embark-indicators)))
+        (apply fn args)))
+
+    (advice-add #'embark-completing-read-prompter
+                :around #'embark-hide-which-key-indicator)))
+
+(use-package embark-consult
+  :ensure t
+  :after embark
+  :bind (:map minibuffer-mode-map
+         ("C-c C-o" . embark-export))
+  :hook (embark-collect-mode . consult-preview-at-point-mode))
+
+;; Auto completion
+;;; 1. 核心：corfu 本身仍随 Emacs 启动，但所有扩展都延迟加载
+(use-package corfu
+  :ensure t
+  ;; 只加载核心，不加载扩展
+  :hook (after-init . global-corfu-mode)
+  :custom
+  (corfu-auto t)
+  (corfu-auto-prefix 2)
+  (corfu-count 12)
+  (corfu-preview-current nil)
+  (corfu-on-exact-match nil)
+  (corfu-auto-delay 0.2)
+  (corfu-popupinfo-delay '(0.4 . 0.2))
+  (global-corfu-modes '((not erc-mode circe-mode help-mode gud-mode vterm-mode) t))
+  :custom-face
+  (corfu-border ((t (:inherit region :background unspecified))))
+  :bind ("M-/" . completion-at-point)
+  :config
+  ;; 退出保存前清理补全
+  (add-hook 'before-save-hook #'corfu-quit)
+  (when (featurep 'persistent-scratch)
+    (advice-add #'persistent-scratch-save :before #'corfu-quit))
+
+  ;; 把补全移到 minibuffer（依赖 consult，但 consult 通常已提前加载）
+  (defun corfu-move-to-minibuffer ()
+    (interactive)
+    (pcase completion-in-region--data
+      (`(,beg ,end ,table ,pred ,extras)
+       (let ((completion-extra-properties extras)
+             completion-cycle-threshold completion-cycling)
+         (consult-completion-in-region beg end table pred)))))
+  (keymap-set corfu-map "M-m" #'corfu-move-to-minibuffer)
+  (add-to-list 'corfu-continue-commands #'corfu-move-to-minibuffer)
+
+  ;; === 关键：延迟加载扩展 ===
+  ;; 第一次进入 corfu-mode 时才加载 nerd-icons-corfu
+  (with-eval-after-load 'corfu
+    (add-hook 'corfu-mode-hook
+              (defun my/-load-nerd-icons-corfu ()
+                (remove-hook 'corfu-mode-hook #'my/-load-nerd-icons-corfu)
+                (require 'nerd-icons-corfu)
+                (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))))
+
+  ;; 第一次进入 corfu-mode 时才加载 cape
+  (add-hook 'corfu-mode-hook
+            (defun my/-load-cape ()
+              (remove-hook 'corfu-mode-hook #'my/-load-cape)
+              (require 'cape)
+              ;; 注册 cape 提供的 capf
+              (add-to-list 'completion-at-point-functions #'cape-file)
+              (add-to-list 'completion-at-point-functions #'cape-elisp-block)
+              (add-to-list 'completion-at-point-functions #'cape-keyword)
+              ;; 给常见后端加 advice（cape 函数已自动 autoload）
+              (advice-add 'lsp-completion-at-point       :around #'cape-wrap-noninterruptible)
+              (advice-add 'lsp-completion-at-point       :around #'cape-wrap-nonexclusive)
+              (advice-add 'comint-completion-at-point    :around #'cape-wrap-nonexclusive)
+              (advice-add 'eglot-completion-at-point     :around #'cape-wrap-buster)
+              (advice-add 'eglot-completion-at-point     :around #'cape-wrap-nonexclusive)
+              (advice-add 'pcomplete-completions-at-point :around #'cape-wrap-nonexclusive))))
+
+;;; 2. 主包少量配置，无性能影响，直接保留
+(use-package emacs
+  :custom
+  (tab-always-indent 'complete)
+  (text-mode-ispell-word-completion nil)
+  (read-extended-command-predicate #'command-completion-default-include-p))
+
+(use-package yasnippet
+  :ensure t
+  :diminish
+  :hook (((LaTeX-mode) . yas-minor-mode)
+         (post-self-insert . my/yas-try-expanding-auto-snippets))
+  :config
+  (yas-reload-all)
+  (with-eval-after-load 'warnings
+    (cl-pushnew '(yasnippet backquote-change)
+                warning-suppress-types :test 'equal))
+
+  (setq yas-triggers-in-field t)
+
+  (defun my/yas-try-expanding-auto-snippets ()
+    (when (and (boundp 'yas-minor-mode) yas-minor-mode)
+      (let ((yas-buffer-local-condition ''(require-snippet-condition . auto)))
+        (yas-expand))))
+  :custom
+  (yas-snippet-dirs (list (locate-user-emacs-file "yasnippets"))))
+
+(use-package eglot
+  :ensure t
+  :defer t
+  :hook ((python-ts-mode . eglot-ensure)
+         (c-mode . eglot-ensure)
+         (c++-mode . eglot-ensure))
+  :bind (:map eglot-mode-map
+         ("C-c e r" . eglot-rename)
+         ("C-c e a" . eglot-code-actions)
+         ("M-." . xref-find-definitions)
+         ("M-," . xref-go-back)
+         ("C-c C-d" . eldoc-doc-buffer))
+  :custom
+  (eglot-autoshutdown t)
+  (eglot-sync-connect 1)
+  (eglot-send-changes-idle-time 0.5)
+  (eglot-events-buffer-size 0)
+  (eglot-connect-timeout 10)
+  :config
+  (with-eval-after-load "jsonrpc"
+    (fset #'jsonrpc--log-event #'ignore)
+    (setq jsonrpc-event-hook nil))
+  (with-eval-after-load 'eglot
+    (setq eglot-events-buffer-config '(:size 0 :format full))
+    (setq eglot-events-buffer-size 0)
+    ;; 使用 ty 作为 Python 的 LSP 服务器（支持 python-ts-mode 和 python-mode）
+    (add-to-list 'eglot-server-programs
+                 '((python-ts-mode python-mode) . ("ty" "server"))))
+  (cl-defmacro eglot-org-babel-enable (lang)
+    "为 LANG 语言的 org babel 代码块启用 Eglot LSP 支持。"
+    (cl-check-type lang string)
+    (let* ((edit-pre (intern (format "org-babel-edit-prep:%s" lang)))
+           (intern-pre (intern (format "eglot--org-babel-%s" lang))))
+      `(progn
+         (defun ,intern-pre (info)
+           ,(format "为 %s 代码块启用 Eglot LSP" (upcase lang))
+           (let* ((file-name (or (cdr (assq :file (nth 2 info)))
+                                 (buffer-file-name)
+                                 (make-temp-file "org-src-" nil ,(format ".%s" lang))))
+                  (file-path (expand-file-name file-name)))
+             (setq-local buffer-file-name file-path)
+             (setq-local default-directory (file-name-directory file-path))
+             (run-with-idle-timer
+              0.5 nil
+              (lambda (buf)
+                (when (buffer-live-p buf)
+                  (with-current-buffer buf
+                    (when (and (not (eglot-current-server))
+                               (fboundp 'eglot-ensure))
+                      (ignore-errors (eglot-ensure))))))
+              (current-buffer))))
+
+         (if (fboundp ',edit-pre)
+             (advice-add ',edit-pre :after ',intern-pre)
+           (progn
+             (defalias ',edit-pre ',intern-pre)
+             (put ',edit-pre 'function-documentation
+                  ,(format "为 %s 代码块准备编辑环境" (upcase lang))))))))
+
+  (defvar eglot-org-babel-lang-list '("python" "C"))
+  (dolist (lang eglot-org-babel-lang-list)
+    (eval `(eglot-org-babel-enable ,lang))))
+
+(use-package format-all
+  :ensure t
+  :defer t
+  :diminish
+  :hook ((LaTeX-mode python-ts-mode c-mode org-src-mode) . format-all-mode)
+  :config
+  (setq format-all-default-formatters '(("LaTeX" auctex)
+                                        ("Emacs Lisp" emacs-lisp)
+                                        ("C" astyle)
+                                        ("Python" ruff)
+                                        ("BibTex" emacs-bibtex)))
+  (add-hook 'format-all-mode-hook 'format-all-ensure-formatter))
+
+(use-package hl-line
+  :ensure nil
+  :hook ((after-init . global-hl-line-mode)
+         ((dashboard-mode eshell-mode shell-mode term-mode vterm-mode) .
+          (lambda () (setq-local global-hl-line-mode nil)))))
+
+(use-package paren
+  :defer t
+  :after (:any text prog)
+  :hook ((text-mode prog-mode) . show-paren-mode)
+  :custom
+  (show-paren-when-point-inside-paren t)
+  (show-paren-when-point-in-periphery t)
+  :config
+  (setq show-paren-context-when-offscreen
+        (if (childframe-workable-p) 'child-frame 'overlay))
+  (with-no-warnings
+    (defun display-line-overlay (pos str &optional face)
+      "Display line at POS as STR with FACE."
+      (let ((ol (save-excursion
+                  (goto-char pos)
+                  (make-overlay (line-beginning-position)
+                                (line-end-position)))))
+        (overlay-put ol 'display str)
+        (overlay-put ol 'face (or face '(:inherit highlight)))
+        ol))
+
+    (defvar-local show-paren--off-screen-overlay nil)
+    (defun show-paren-off-screen (&rest _args)
+      "Display matching line for off-screen paren."
+      (when (overlayp show-paren--off-screen-overlay)
+        (delete-overlay show-paren--off-screen-overlay))
+      (when (and (overlay-buffer show-paren--overlay)
+                 (not (or cursor-in-echo-area
+                          executing-kbd-macro
+                          noninteractive
+                          (minibufferp)
+                          this-command))
+                 (and (not (bobp))
+                      (memq (char-syntax (char-before)) '(?\) ?\$)))
+                 (= 1 (logand 1 (- (point)
+                                   (save-excursion
+                                     (forward-char -1)
+                                     (skip-syntax-backward "/\\")
+                                     (point))))))
+        (cl-letf (((symbol-function #'minibuffer-message)
+                   (lambda (msg &rest args)
+                     (let ((msg (apply #'format-message msg args)))
+                       (setq show-paren--off-screen-overlay
+                             (display-line-overlay
+                              (window-start) msg))))))
+          (blink-matching-open))))
+    (advice-add #'show-paren-function :after #'show-paren-off-screen)))
+
+(use-package pulse
+  :ensure nil
+  :custom-face
+  (pulse-highlight-start-face ((t (:inherit region :background unspecified))))
+  (pulse-highlight-face ((t (:inherit region :background unspecified :extend t))))
+  :hook (((dumb-jump-after-jump imenu-after-jump) . my/recenter-and-pulse)
+         ((bookmark-after-jump magit-diff-visit-file next-error) . my/recenter-and-pulse-line))
+  :init
+  (with-no-warnings
+    (defun my/pulse-momentary-line (&rest _)
+      "Pulse the current line."
+      (pulse-momentary-highlight-one-line (point)))
+
+    (defun my/pulse-momentary (&rest _)
+      "Pulse the region or current line."
+      (if (fboundp 'xref-pulse-momentarily)
+          (xref-pulse-momentarily)
+        (my/pulse-momentary-line)))
+
+    (defun my/recenter-and-pulse (&rest _)
+      "Recenter and pulse the region or current line."
+      (recenter)
+      (my/pulse-momentary))
+
+    (defun my/recenter-and-pulse-line (&rest _)
+      "Recenter and pulse the current line."
+      (recenter)
+      (my/pulse-momentary-line))
+
+    (dolist (cmd '(recenter-top-bottom
+                   other-window switch-to-buffer
+                   aw-select toggle-window-split
+                   windmove-do-window-select
+                   pager-page-down pager-page-up
+                   treemacs-select-window))
+      (advice-add cmd :after #'my/pulse-momentary-line))
+
+    (dolist (cmd '(pop-to-mark-command
+                   pop-global-mark
+                   goto-last-change))
+      (advice-add cmd :after #'my/recenter-and-pulse))))
+
+(use-package ibuffer
+  :ensure nil
+  :bind ("C-x C-b" . ibuffer)
+  :init (setq ibuffer-filter-group-name-face '(:inherit (font-lock-string-face bold))))
+
+(use-package nerd-icons-ibuffer
+  :ensure t
+  :after ibuffer
+  :hook (ibuffer-mode . nerd-icons-ibuffer-mode)
+  :config (setq nerd-icons-ibuffer-icon t))
+
+(use-package minibuffer
+  :bind (:map minibuffer-local-map
+         ([escape] . abort-recursive-edit)
+         :map minibuffer-local-ns-map
+         ([escape] . abort-recursive-edit)
+         :map minibuffer-local-completion-map
+         ([escape] . abort-recursive-edit)
+         :map minibuffer-local-must-match-map
+         ([escape] . abort-recursive-edit)
+         :map minibuffer-local-isearch-map
+         ([escape] . abort-recursive-edit))
+  :custom
+  (completion-auto-help t)
+  (completion-show-help nil)
+  (completion-cycle-threshold nil)
+  (completion-auto-select 'second-tab)
+  (enable-recursive-minibuffers t)
+  (minibuffer-depth-indicate-mode t)
+  (minibuffer-default-prompt-format " [%s]")
+  (minibuffer-electric-default-mode t)
+  (minibuffer-completion-auto-choose nil)
+  (minibuffer-follows-selected-frame nil)
+  (completion-ignore-case t)
+  (read-buffer-completion-ignore-case t)
+  (read-file-name-completion-ignore-case t)
+  (completion-styles '(basic partial-completion substring flex))
+  (completion-category-overrides
+   '((buffer (styles . (flex)))
+     (eglot-capf (styles . (basic partial-completion)))
+     (imenu (styles . (substring)))))
+  (completions-format 'one-column)
+  (completions-max-height 13)
+  (completions-detailed t))
+
+(use-package dired
+  :ensure nil
+  :bind (:map dired-mode-map
+         ("C-c C-p" . wdired-change-to-wdired-mode))
+  :config
+  (setq dired-dwim-target t)
+  (setq dired-recursive-deletes 'always
+        dired-recursive-copies 'always)
+  (setq dired-listing-switches "-alh --group-directories-first")
+
+  (use-package diredfl
+    :ensure t
+    :hook (dired-mode . diredfl-mode))
+
+  (use-package nerd-icons-dired
+    :ensure t
+    :diminish
+    :custom-face
+    (nerd-icons-dired-dir-face ((t (:inherit nerd-icons-dsilver :foreground unspecified))))
+    :hook (dired-mode . nerd-icons-dired-mode)))
+
+(use-package fd-dired
+  :ensure t)
+
+(use-package bookmark
+  :ensure nil
+  :config
+  (setq bookmark-default-file (locate-user-emacs-file "etc/bookmarks"))
+  (with-no-warnings
+    (defun my/bookmark-bmenu--revert ()
+      "Re-populate tabulated-list-entries."
+      (let (entries)
+        (dolist (full-record (bookmark-maybe-sort-alist))
+          (let* ((name (bookmark-name-from-record full-record))
+                
+               (annotation (bookmark-get-annotation full-record))
+               (location (bookmark-location full-record))
+               (file (file-name-nondirectory location))
+               (type (let ((fmt "%-8.8s"))
+                       (cond ((null location)
+                              (propertize (format fmt "NOFILE") 'face 'warning))
+                             ((file-remote-p location)
+                              (propertize (format fmt "REMOTE") 'face 'mode-line-buffer-id))
+                             ((not (file-exists-p location))
+                              (propertize (format fmt "NOTFOUND") 'face 'error))
+                             ((file-directory-p location)
+                              (propertize (format fmt "DIRED") 'face 'warning))
+                             (t (propertize (format fmt "FILE") 'face 'success))))))
+          (push (list
+                 full-record
+                 `[,(if (and annotation (not (string-equal annotation "")))
+                        "*" "")
+                   ,icon
+                   ,(if (display-mouse-p)
+                        (propertize name
+                                    'font-lock-face 'bookmark-menu-bookmark
+                                    'mouse-face 'highlight
+                                    'follow-link t
+                                    'help-echo "mouse-2: go to this bookmark in other window")
+                      name)
+                   ,type
+                   ,@(if bookmark-bmenu-toggle-filenames
+                         (list (propertize location 'face 'completions-annotations)))])
+                entries)))
+      (tabulated-list-init-header)
+      (setq tabulated-list-entries entries))
+    (tabulated-list-print t))
+  (advice-add #'bookmark-bmenu--revert :override #'my/bookmark-bmenu--revert)
+
+  (defun my/bookmark-bmenu-list ()
+    "Display a list of existing bookmarks."
+    (interactive)
+    (bookmark-maybe-load-default-file)
+    (let ((buf (get-buffer-create bookmark-bmenu-buffer)))
+      (if (called-interactively-p 'interactive)
+          (pop-to-buffer buf)
+        (set-buffer buf)))
+    (bookmark-bmenu-mode)
+    (bookmark-bmenu--revert))
+  (advice-add #'bookmark-bmenu-list :override #'my/bookmark-bmenu-list)
+
+  (define-derived-mode bookmark-bmenu-mode tabulated-list-mode "Bookmark Menu"
+    (setq truncate-lines t)
+    (setq buffer-read-only t)
+    (setq tabulated-list-format
+          `[("" 1)
+            ("" ,(if (icons-displayable-p) 2 0))
+            ("Bookmark" ,bookmark-bmenu-file-column bookmark-bmenu--name-predicate)
+            ("Type" 9)
+            ,@(if bookmark-bmenu-toggle-filenames
+                  '(("File" 0 bookmark-bmenu--file-predicate)))])
+    (setq tabulated-list-padding bookmark-bmenu-marks-width)
+    (setq tabulated-list-sort-key '("Bookmark" . nil))
+    (add-hook 'tabulated-list-revert-hook #'bookmark-bmenu--revert nil t)
+    (setq revert-buffer-function #'bookmark-bmenu--revert)
+    (tabulated-list-init-header))))
+
+(defvar my/org-root "C:/Users/wei/Documents/org/agenda/"
+  "Agenda 文件的根目录。")
+
+(defvar my/denote-root "C:/Users/wei/Documents/org/notes/"
+  "Denote 笔记存储目录。")
+
+(defun my/normalize-path (path)
+  "将Windows路径转换为Emacs内部表示。"
+  (replace-regexp-in-string "\\\\" "/" path))
+
+(setq my/org-root (my/normalize-path my/org-root)
+      my/denote-root (my/normalize-path my/denote-root))
+
+(defun my/ensure-directories-exist ()
+  "确保所有必要的目录都存在。"
+  (dolist (dir (list my/org-root my/denote-root))
+    (let ((normalized-dir (file-name-as-directory dir)))
+      (unless (file-directory-p normalized-dir)
+        (make-directory normalized-dir t)
+        (message "已创建目录: %s" normalized-dir)))))
+
+(add-hook 'after-init-hook #'my/ensure-directories-exist)
+
+(defvar my/org-optimized-p nil
+  "标记是否已经优化过Org解析。")
+
+(defun my/org-optimize-emphasis-parsing ()
+  "一次性设置 emphasis 解析。"
+  (unless my/org-optimized-p
+    (setq org-emphasis-regexp-components '("-[:space:]('\"{[:nonascii:]"
+                                           "-[:space:].,:!?;'\")}\\[[:nonascii:]"
+                                           "[:space:]"
+                                           "."
+                                           1))
+    (setq org-match-substring-regexp
+          (concat "\\([0-9a-zA-Zα-γΑ-Ω]\\)\\([_^]\\)\\("
+                  "\\(?:" (org-create-multibrace-regexp "{" "}" org-match-sexp-depth) "\\)"
+                  "\\|"
+                  "\\(?:" (org-create-multibrace-regexp "(" ")" org-match-sexp-depth) "\\)"
+                  "\\|"
+                  "\\(?:\\*\\|[+-]?[[:alnum:].,\\]*[[:alnum:]]\\)\\)"))
+    (org-set-emph-re 'org-emphasis-regexp-components org-emphasis-regexp-components)
+    (org-element-update-syntax)
+    (setq my/org-optimized-p t)))
+
+(setq org-persist-directory (locate-user-emacs-file "etc/org-persist/"))
+(setq org-cite-export-processors
+      '((html csl)
+        (latex biblatex)))
+    (use-package org
+      :diminish
+      :defer t
+      :mode ("\\.org\\'" . org-mode)
+      :hook ((org-mode . (lambda ()
+                           (visual-line-mode 1)
+                           (turn-on-org-cdlatex)
+                           (yas-minor-mode 1)
+                           (my/add-latex-in-org-mode-expansions)
+                           (my/org-indent-setup)))
+             (org-babel-after-execute . org-redisplay-inline-images))
+      :bind (("C-c a" . org-agenda)
+             :map org-mode-map
+             ("C-c i" . yank-media)
+             ("C-c l" . org-store-link))
+      :custom
+      (org-directory my/org-root)
+      (org-hide-emphasis-markers t)
+      (org-startup-indented t)
+      (org-fontify-todo-headline nil)
+      (org-fontify-done-headline t)
+      (org-fontify-whole-heading-line t)
+      (org-fontify-quote-and-verse-blocks t)
+      (org-ellipsis " [+]")
+      (org-list-demote-modify-bullet
+       '(("+" . "-") ("1." . "a.") ("-" . "+")))
+      (org-image-actual-width '(600))
+      (org-preview-latex-image-directory
+       (expand-file-name "orgltxpng/" (getenv "TEMP")))
+      (org-latex-preview-numbered t)
+      (org-imenu-depth 4)
+      (org-clone-delete-id t)
+      (org-use-sub-superscripts '{})
+      (org-yank-adjusted-subtrees t)
+      (org-ctrl-k-protect-subtree 'error)
+      (org-fold-catch-invisible-edits 'show-and-error)
+      (org-return-follows-link nil)
+      (org-todo-keywords
+       '((sequence "TODO(t)" "HOLD(h!)" "WIP(i!)" "WAIT(w!)" "|" "DONE(d!)" "CANCELLED(c@/!)")))
+      (org-todo-keyword-faces
+       '(("TODO" :foreground "#7c7c75" :weight bold)
+         ("HOLD" :foreground "#feb24c" :weight bold)
+         ("WIP" :foreground "#0098dd" :weight bold)
+         ("WAIT" :foreground "#9f7efe" :weight bold)
+         ("DONE" :foreground "#50a14f" :weight bold)
+         ("CANCELLED" :foreground "#ff6480" :weight bold)))
+      (org-use-fast-todo-selection 'expert)
+      (org-enforce-todo-dependencies t)
+      (org-enforce-todo-checkbox-dependencies t)
+      (org-priority-faces
+       '((?A :foreground "red") (?B :foreground "orange") (?C :foreground "yellow")))
+      (org-global-properties
+       '(("EFFORT_ALL" . "0:15 0:30 0:45 1:00 2:00 3:00 4:00 5:00 6:00 7:00 8:00")
+         ("APPT_WARNTIME_ALL" . "0 5 10 15 20 25 30 45 60")
+         ("STYLE_ALL" . "habit")))
+      (org-columns-default-format "%25ITEM %TODO %SCHEDULED %DEADLINE %3PRIORITY %TAGS %CLOCKSUM %EFFORT{:}")
+      (org-log-repeat 'time)
+      (org-closed-keep-when-no-todo t)
+      (org-archive-location "%s_archive::datetree/")
+      (org-refile-use-cache nil)
+      (org-refile-targets '((org-agenda-files . (:maxlevel . 6))))
+      (org-refile-use-outline-path 'file)
+      (org-outline-path-complete-in-steps nil)
+      (org-refile-allow-creating-parent-nodes 'confirm)
+      (org-goto-auto-isearch nil)
+      (org-goto-interface 'outline-path-completion)
+      (org-use-fast-tag-selection t)
+      (org-fast-tag-selection-single-key t)
+      (org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
+      :config
+      (setq org-yank-image-save-method "file")
+
+      (defun my/org-yank-image-file-name ()
+        "生成图片保存路径"
+        (unless (buffer-file-name)
+          (error "请先保存当前 org 文件"))
+
+        (let* ((heading (or (org-get-heading t t t t) "default"))
+               (clean-heading (replace-regexp-in-string "[^a-zA-Z0-9\u4e00-\u9fa5-]+" "_" heading))
+               (timestamp (format-time-string "%Y%m%d_%H%M%S"))
+               (base-dir (file-name-directory (buffer-file-name)))
+               (dir (expand-file-name (concat "Figure/" clean-heading "/") base-dir))
+               (filename (concat timestamp ".png"))
+               (full-path (expand-file-name filename dir)))
+
+          (make-directory dir t)
+          (message "保存图片到: %s" full-path)
+          full-path))
+
+      (setq org-yank-image-file-name-function #'my/org-yank-image-file-name)
+
+      ;; 修正版：正确插入描述
+      (defun my/org-yank-image-add-description ()
+        "在粘贴图片后添加描述"
+        (when (eq major-mode 'org-mode)
+          (save-excursion
+            ;; 找到刚插入的链接
+            (when (re-search-backward "\\[\\[file:\\([^]]+\\)\\]\\]" (line-beginning-position) t)
+              (let* ((file-path (match-string 1))
+                     (description (read-string "图片描述: ")))
+                (when (not (string-empty-p description))
+                  ;; 替换整个链接，添加描述
+                  (replace-match (format "[[file:%s][%s]]" file-path description) t t)))))))
+
+      ;; 移除旧的 advice（如果存在）
+      (advice-remove 'yank-media #'my/org-yank-image-add-description)
+
+      ;; 添加新的 advice
+      (advice-add 'yank-media :after
+                  (lambda (&rest _)
+                    (when (eq major-mode 'org-mode)
+                      (run-with-idle-timer 0.1 nil #'my/org-yank-image-add-description))))
+
+
+      (defun my/add-latex-in-org-mode-expansions ()
+        (modify-syntax-entry ?\\ "\\" org-mode-syntax-table)
+        (setq paragraph-start (concat paragraph-start "\\|\\\\end{\\([A-Za-z0-9*]+\\)}"))
+        (setq-local beginning-of-defun-function 'my/org-beginning-of-defun)
+        (with-eval-after-load 'expand-region
+          (set (make-local-variable 'my/try-expand-list)
+               (append (cl-set-difference my/try-expand-list
+                                          '(my/mark-method-call
+                                            my/mark-inside-pairs
+                                            my/mark-outside-pairs))
+                       '(LaTeX-mark-environment
+                         my/mark-LaTeX-inside-math
+                         my/mark-latex-inside-pairs
+                         my/mark-latex-outside-pairs
+                         my/mark-LaTeX-math)))))
+
+      (defun my/org-indent-setup ()
+        (setq-local show-paren-mode nil))
+      (my/org-optimize-emphasis-parsing))
+
+(use-package denote
+  :ensure t
+  :defer t
+  :custom
+  (denote-file-type 'org)
+  (denote-directory my/denote-root)
+  (denote-signature-prompt nil)
+  (denote-known-keywords
+   '("literature" "research" "thesis"
+     "project" "work" "meeting" "report"
+     "journal" "idea" "reading" "personal"
+     "todo" "draft" "archive"))
+  (denote-infer-keywords t)
+  (denote-sort-keywords t)
+  (denote-prompts '(title keywords template))
+  (denote-save-buffers nil)
+  (denote-rename-confirmations '(rewrite-front-matter modify-file-name))
+  (denote-link-fontify t)
+  (denote-date-prompt-use-org-read-date t)
+  (denote-date-format "%Y-%m-%d %a")
+  :hook ((org-mode . denote-fontify-links-mode-maybe)
+         (dired-mode . denote-dired-mode-in-directories))
+  :bind (("C-c n n" . denote)
+         ("C-c n R" . denote-rename-file)
+         ("C-c n r" . denote-rename-file-keywords)
+         ("C-c n d" . denote-dired-rename-files)
+         ("C-c n b" . denote-backlinks)
+         ("C-c n a" . denote-add-links)
+         :map dired-mode-map
+         ("C-c C-d C-r" . denote-dired-rename-files)
+         ("C-c C-d C-i" . denote-dired-link-marked-notes))
+  :config
+  (denote-rename-buffer-mode 1)
+  (setq denote-templates
+        `((报告 . "* 摘要\n\n* 引言\n\n* 主体\n** 方法\n** 结果\n\n* 结论\n\n* 参考文献\n\n")
+          (日记 . ,(concat "* 今日总结"
+                              "\n\n"
+                              "* 待办事项"
+                              "\n** 已完成"
+                              "\n** 未完成"
+                              "\n\n"
+                              "* 思考与感悟"
+                              "\n\n"))
+          (文献 . ,(concat "* 文献信息"
+                                 "\n** 作者"
+                                 "\n** 发表时间"
+                                 "\n** 期刊/会议"
+                                 "\n\n"
+                                 "* 主要内容"
+                                 "\n\n"
+                                 "* 关键观点"
+                                 "\n\n"
+                                 "* 批判性思考"
+                                 "\n\n"
+                                 "* 与已有笔记的关联"
+                                 "\n\n"))
+          (草稿 . ,(concat "* 大纲"
+                            "\n\n"
+                            "* 初稿"
+                            "\n\n"
+                            "* 修改记录"
+                            "\n\n")))))
+
+(use-package consult-denote
+  :ensure t
+  :after (consult denote)
+  :bind (("C-c n f" . consult-denote-find)
+       ("C-c n l" . consult-denote-link)
+       ("C-c n g" . consult-denote-grep))
+  :config
+  (setq consult-denote-grep-command #'consult-ripgrep
+        denote-consult-directory denote-directory))
+
+;; ---------- agenda files: 延迟生成（兼容 Org 9.7.11） ----------
+
+(defvar my/org-projects-dir (expand-file-name "projects/" my/org-root))
+(defvar my/org-work-dir (expand-file-name "work/" my/org-root))
+(defvar my/org-personal-dir (expand-file-name "personal/" my/org-root))
+
+(defvar my/org-agenda-files-cache nil)
+(defvar my/org-agenda-files-last-check 0)
+
+(defun my/org-auto-collect-agenda-files (&optional force-refresh)
+  "自动收集所有子目录中的Org文件。"
+  (let ((now (float-time))
+        (cache-timeout 300))
+    (when (or force-refresh
+              (null my/org-agenda-files-cache)
+              (> (- now my/org-agenda-files-last-check) cache-timeout))
+      (setq my/org-agenda-files-cache
+            (delete-dups
+             (append
+              (when (file-directory-p my/org-projects-dir)
+                (directory-files-recursively my/org-projects-dir "\\.org$"))
+              (when (file-directory-p my/org-work-dir)
+                (directory-files-recursively my/org-work-dir "\\.org$"))
+              (when (file-directory-p my/org-personal-dir)
+                (directory-files-recursively my/org-personal-dir "\\.org$"))
+              (let ((inbox (expand-file-name "inbox.org" my/org-root)))
+                (when (file-exists-p inbox) (list inbox))))))
+      (setq my/org-agenda-files-last-check now))
+    my/org-agenda-files-cache))
+
+(with-eval-after-load 'org-agenda
+  (defun my/org-agenda-prepare (&rest _)
+    (setq org-agenda-files (my/org-auto-collect-agenda-files)))
+  (advice-add 'org-agenda :before #'my/org-agenda-prepare))
+
+  (setq org-agenda-span 'week
+        org-agenda-start-day nil
+        org-agenda-window-setup 'current-window
+        org-agenda-include-deadlines t
+        org-agenda-show-all-dates nil
+        org-agenda-block-separator ?─
+        org-agenda-time-grid
+        '((daily today require-timed)
+          (800 1000 1200 1400 1600 1800 2000)
+          " ┄┄┄┄┄ " "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄")
+        org-agenda-current-time-string
+        "⭠ now ─────────────────────────────────────────────────"
+        org-agenda-prefix-format
+        '((agenda . " %i %-12:c %t")
+          (todo . " %i %-12:c")
+          (tags . " %i %-12:c")
+          (search . " %i %-12:c")))
+
+  (setq org-agenda-sorting-strategy
+        '((agenda time-up priority-down category-keep)
+          (todo priority-down category-keep)
+          (tags priority-down category-keep)
+          (search category-keep)))
+
+(defvar my/org-capture-files
+   '(("inbox" . "inbox.org")
+     ("ideas" . "ideas.org")
+     ("notes" . "notes.org")))
+
+ (defun my/create-org-capture-file (name)
+   "创建指定名称的捕获文件。"
+   (let ((file (expand-file-name name my/org-root)))
+     (unless (file-exists-p file)
+       (with-temp-file file
+         (insert (format "#+TITLE: %s\n#+CREATED: %s\n\n"
+                         (file-name-sans-extension name)
+                         (format-time-string "%Y-%m-%d %a %H:%M"))))
+       (message "已创建捕获文件: %s" (file-relative-name file my/org-root)))
+     file))
+
+ (defun my/ensure-capture-files ()
+   "确保所有捕获模板文件都存在。"
+   (dolist (file-pair my/org-capture-files)
+     (my/create-org-capture-file (cdr file-pair))))
+
+(with-eval-after-load 'org-capture
+ (my/ensure-capture-files))
+
+ (defun my/get-capture-file (key)
+   "根据KEY获取对应的捕获文件路径。"
+   (let ((file-name (alist-get key my/org-capture-files nil nil #'string=)))
+     (when file-name
+       (expand-file-name file-name my/org-root))))
+
+ (defun my/org-capture-setup ()
+   "配置 capture 缓冲区环境。"
+   (setq-local org-complete-tags-always-offer-all-agenda-tags t)
+   (visual-line-mode -1)
+   (auto-fill-mode -1))
+
+ (defun my/org-capture-selection-or-block ()
+   "根据选中内容返回适当格式。"
+   (with-current-buffer (org-capture-get :original-buffer)
+     (let ((content (plist-get org-store-link-plist :initial))
+           (src-mode (replace-regexp-in-string "-mode$" "" (symbol-name major-mode)))
+           (is-code (derived-mode-p 'prog-mode)))
+       (if (string-empty-p (or content ""))
+           ""
+         (if is-code
+             (format "\n#+begin_src %s\n%s\n#+end_src\n" src-mode content)
+           (format "\n#+begin_quote\n%s\n#+end_quote\n" content))))))
+
+ (defun my/org-capture-link-format ()
+   "格式化链接或标注信息。"
+   (with-current-buffer (org-capture-get :original-buffer)
+     (let* ((annotation (plist-get org-store-link-plist :annotation))
+            (file (buffer-file-name)))
+       (cond
+        ((string-empty-p (or annotation "")) "")
+        ((eq major-mode 'org-mode)
+         (concat "- reference :: "
+                 (replace-regexp-in-string ".*::\\s-*\\([^]]+\\)\\s-*\\(.*\\)" "\\1" annotation)))
+        (file
+         (format "- reference :: %s[[%s]]" annotation (file-name-nondirectory file)))
+        (t (format "- reference :: %s" annotation))))))
+
+ (use-package org-capture
+   :bind ("C-c c" . org-capture)
+   :hook (org-capture-mode . my/org-capture-setup)
+   :config
+   (setq org-capture-templates
+         `(("t" "Todo" entry (file ,(my/get-capture-file "inbox"))
+            "* TODO %?\n%U\n%i\n"
+            :empty-lines 1)
+           ("n" "Notes" entry (file+headline ,(my/get-capture-file "notes") "Notes")
+            "* %?\n%(my/org-capture-selection-or-block)\n%(my/org-capture-link-format)\n%U"
+            :prepend t :empty-lines 1)
+           ("i" "Idea" entry (file+headline ,(my/get-capture-file "ideas") "Ideas")
+            "* %^{Title}\n%?\n%(my/org-capture-selection-or-block)\n%(my/org-capture-link-format)\n%U"
+            :prepend t :empty-lines 1)))
+
+   (defun my/org-capture-refresh-agenda (&rest _)
+     "捕获完成后自动刷新 agenda。"
+     (when (get-buffer "*Org Agenda*")
+       (with-current-buffer "*Org Agenda*"
+         (org-agenda-redo))))
+
+   (advice-add 'org-capture-finalize :after #'my/org-capture-refresh-agenda))
+
+(use-package org-modern
+  :ensure t
+  :defer t ; 完全延迟加载，直到 org-mode 触发
+  :hook
+  ((org-mode . org-modern-mode)
+   (org-agenda-finalize . org-modern-agenda))
+
+  :init
+  ;; 仅定义最轻量的函数，不执行任何配置
+  (defun my/org-modern--configure-spacing ()
+    "根据 org-modern-mode 设置行间距。"
+    (setq-local line-spacing (if org-modern-mode 0.1 0.0)))
+
+  :config
+  ;; ===== 一次性图形界面配置 =====
+  ;; 使用 eval-after-load 确保仅在需要时执行一次
+  (when (display-graphic-p)
+    (eval-after-load 'org-modern
+      `(progn
+         ;; 直接设置参数，避免遍历
+         (set-frame-parameter nil 'right-divider-width 5)
+         (set-frame-parameter nil 'left-divider-width 5)
+         (set-frame-parameter nil 'internal-border-width 5)
+
+         ;; 一次性获取背景色并应用
+         (let ((bg (face-attribute 'default :background nil 'default)))
+           (set-face-attribute 'window-divider nil :foreground bg)
+           (set-face-attribute 'window-divider-first-pixel nil :foreground bg)
+           (set-face-attribute 'window-divider-last-pixel nil :foreground bg)
+           (set-face-attribute 'fringe nil :background bg)))))
+
+  ;; ===== 合并所有配置项，减少多次 setq =====
+  (setq org-modern-star ["➫" "✦" "✜" "✲" "✸" "❅"]
+        org-modern-list '((43 . "➤") (45 . "▻") (42 . "►"))
+        org-modern-table-horizontal 0.2
+        org-modern-table nil
+        org-tags-column 0
+        org-special-ctrl-a/e t
+        org-insert-heading-respect-content t)
+
+  ;; ===== 轻量 hook 设置 =====
+  (add-hook 'org-modern-mode-hook #'my/org-modern--configure-spacing)
+
+  ;; ===== 延迟 face 设置，避免加载时计算 =====
+  (with-eval-after-load 'org-faces
+    (set-face-attribute 'org-ellipsis nil
+                        :foreground "#90B44B"
+                        :underline nil)))
+
+(defun my/org-src-setup ()
+  "配置 org-src 编辑环境。"
+  (when (derived-mode-p 'org-src-mode)
+    (company-mode 1)
+    (yas-minor-mode 1)
+    (add-to-list 'org-src-lang-modes '("python" . python-ts))
+    (my/org-src-r-keybindings)
+    (setq-local electric-layout-rules '((?\{ . after) (?\} . before)))))
+
+(use-package org-src
+  :ensure nil
+  :after org
+  :hook (org-src-mode . my/org-src-setup)
+  :config
+  (setq org-confirm-babel-evaluate nil)
+  :bind (:map org-mode-map
+         ("C-c '" . org-edit-special)
+         ("C-c C-v C-e" . org-babel-execute-src-block)
+         ("C-c C-v C-b" . org-babel-execute-buffer)))
+
+(use-package appt
+  :defer org-agenda
+  :ensure nil
+  :config
+  (appt-activate 1)
+  (setq appt-message-warning-time 15
+        appt-display-interval 5
+        appt-display-mode-line t
+        appt-display-duration 60
+        appt-audible t
+        appt-display-diary nil
+        appt-display-format 'window)
+  
+  (defun my/appt-display (min-to-app new-time msg)
+    "自定义的提醒显示函数。"
+    (let ((title (format "📅 Agenda 提醒 (%s分钟后)" min-to-app)))
+      (appt-disp-window min-to-app new-time msg)
+      (message "%s: %s" title msg)
+      (when (featurep 'alert)
+        (alert msg
+               :title title
+               :severity (cond
+                          ((< (string-to-number min-to-app) 5) 'urgent)
+                          ((< (string-to-number min-to-app) 10) 'high)
+                          (t 'moderate))
+               :category 'org-agenda))))
+  
+  (setq appt-disp-window-function #'my/appt-display)
+  
+  (defun my/org-agenda-to-appt ()
+    "从 Org Agenda 文件中提取所有约会。"
+    (interactive)
+    (setq appt-time-msg-list nil)
+    (org-agenda-to-appt t)
+    (message "已从 Agenda 加载 %d 个约会提醒" (length appt-time-msg-list)))
+  
+  (run-at-time nil 3600 'my/org-agenda-to-appt)
+  (add-hook 'org-finalize-agenda-hook 'my/org-agenda-to-appt)
+  (add-hook 'org-after-todo-state-change-hook 'my/org-agenda-to-appt)
+  (add-hook 'org-after-tags-change-hook 'my/org-agenda-to-appt)
+  (my/org-agenda-to-appt)
+  (message "Org Agenda 提醒系统已启用"))
+
+(use-package alert
+  :ensure t
+  :after appt
+  :config
+  (setq alert-default-style  'message))
+
+(defun my/show-today-appointments ()
+  "显示今天所有的提醒事项。"
+  (interactive)
+  (if appt-time-msg-list
+      (let ((buf (get-buffer-create "*Today's Appointments*")))
+        (with-current-buffer buf
+          (erase-buffer)
+          (insert (propertize "📅 今日提醒事项\n\n"
+                              'face '(:height 1.3 :weight bold)))
+          (dolist (appt appt-time-msg-list)
+            (insert (format "⏰ %s - %s\n"
+                            (car appt)
+                            (cadr appt))))
+          (goto-char (point-min)))
+        (display-buffer buf))
+    (message "今天没有提醒事项")))
+
+(defun my/clear-all-appointments ()
+  "清除所有提醒事项。"
+  (interactive)
+  (setq appt-time-msg-list nil)
+  (message "已清除所有提醒"))
+
+(use-package reftex
+  :defer t
+  :hook ((LaTeX-mode . turn-on-reftex)
+         (org-mode . turn-on-reftex))
+  :config
+  (setq reftex-plug-into-AUCTeX t
+  reftex-cite-format 'biblatex))
+
+(use-package eldoc
+  :defer t
+  :diminish
+  :config
+  (setq eldoc-echo-area-use-multiline-p t
+        max-mini-window-height 0.4))
+
+;; 导出 HTML 时自动追加 org.css
+(with-eval-after-load 'ox-html
+  (setq org-html-head-extra
+        "<link rel=\"stylesheet\" type=\"text/css\" href=\"https://gongzhitaao.org/orgcss/org.css\"/>"))
+
+(with-eval-after-load 'ox-latex
+  (setq org-latex-pdf-process '("latexmk -xelatex -quiet -shell-escape -f %f"))
+  (push '(
+          "\\documentclass[lang=cn]{article}
+                 [NO-DEFAULT-PACKAGES]
+                 [PACKAGES]
+                 [EXTRA]"
+          ("\\section{%s}" . "\\section*{%s}")
+          ("\\subsection{%s}" . "\\subsection*{%s}")
+          ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+          ("\\paragraph{%s}" . "\\paragraph*{%s}")
+          ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))
+        org-latex-classes))
+
+(add-hook 'prettify-symbols-mode-hook
+          (defun prettify-symbols-latex-symbols ()
+            "LaTeX 符号美化列表"
+            (interactive)
+            (setq-local prettify-symbols-alist '(("$" . 183)
+                                                 ("\\alpha" . 945)
+                                                 ("\\beta" . 946)
+                                                 ("\\gamma" . 947)
+                                                 ("\\delta" . 948)
+                                                 ("\\epsilon" . 1013)
+                                                 ("\\zeta" . 950)
+                                                 ("\\eta" . 951)
+                                                 ("\\theta" . 952)
+                                                 ("\\iota" . 953)
+                                                 ("\\kappa" . 954)
+                                                 ("\\lambda" . 955)
+                                                 ("\\mu" . 956)
+                                                 ("\\nu" . 957)
+                                                 ("\\xi" . 958)
+                                                 ("\\pi" . 960)
+                                                 ("\\rho" . 961)
+                                                 ("\\sigma" . 963)
+                                                 ("\\tau" . 964)
+                                                 ("\\phi" . 981)
+                                                 ("\\omega" . 969)
+                                                 ("\\infty" . 8734)
+                                                 ("\\int" . 8747)
+                                                 ("\\sum" . 8721)
+                                                 ("\\prod" . 8719)
+                                                 ("\\leq" . 8804)
+                                                 ("\\geq" . 8805)
+                                                 ("\\in" . 8712)
+                                                 ("\\subset" . 8834)
+                                                 ("\\subseteq" . 8838)
+                                                 ("\\supset" . 8835)
+                                                 ("\\supseteq" . 8839)
+                                                 ("\\cup" . 8746)
+                                                 ("\\cap" . 8745)
+                                                 ("\\emptyset" . 8709)
+                                                 ("\\exists" . 8707)
+                                                 ("\\forall" . 8704)
+                                                 ("\\to" . 8594)
+                                                 ("\\rightarrow" . 8594)
+                                                 ("\\leftarrow" . 8592)
+                                                 ("\\Rightarrow" . 8658)
+                                                 ("\\Leftarrow" . 8656)
+                                                 ("\\equiv" . 8801)
+                                                 ("\\ne" . 8800)
+                                                 ("\\approx" . 8776)
+                                                 ("\\times" . 215)
+                                                 ("\\cdot" . 8901)
+                                                 ("\\partial" . 8706)
+                                                 ("\\nabla" . 8711)))))
+
+(use-package lazytab
+  :vc (:url "https://github.com/karthink/lazytab" :rev :newest)
+  :bind (:map orgtbl-mode-map
+         ("<tab>" . lazytab-org-table-next-field-maybe)
+         ("TAB" . lazytab-org-table-next-field-maybe))
+  :after cdlatex
+  :config
+  (add-hook 'cdlatex-tab-hook #'lazytab-cdlatex-or-orgtbl-next-field 90)
+  (dolist (cmd '(("smat" "插入 smallmatrix 环境"
+                  "\\left( \\begin{smallmatrix} ? \\end{smallmatrix} \\right)"
+                  lazytab-position-cursor-and-edit nil nil t)
+                 ("bmat" "插入 bmatrix 环境"
+                  "\\begin{bmatrix} ? \\end{bmatrix}"
+                  lazytab-position-cursor-and-edit nil nil t)
+                 ("pmat" "插入 pmatrix 环境"
+                  "\\begin{pmatrix} ? \\end{pmatrix}"
+                  lazytab-position-cursor-and-edit nil nil t)
+                 ("tbl" "插入表格"
+                  "\\begin{table}\n\\centering ? \\caption{}\n\\end{table}\n"
+                  lazytab-position-cursor-and-edit nil t nil)))
+    (push cmd cdlatex-command-alist))
+  (cdlatex-reset-mode))
+
+(use-package latex
+    :ensure auctex
+    :mode ("\\.tex\\'" . LaTeX-mode)
+    :hook ((LaTeX-mode . prettify-symbols-mode)
+           (LaTeX-mode . my/latex-with-outline))
+    :bind (:map LaTeX-mode-map
+           ("C-S-e" . latex-math-from-calc)
+           ([remap LaTeX-environment] . cdlatex-environment))
+    :config
+    (setq TeX-auto-save t
+          TeX-parse-self t
+          TeX-save-query nil
+          TeX-show-help nil
+          TeX-PDF-mode t
+          TeX-source-correlate-mode t
+          TeX-source-correlate-start-server t
+          TeX-error-overview-open-after-TeX-run t
+          TeX-debug-warnings nil
+          TeX-source-correlate-method 'synctex
+          TeX-engine 'xetex
+          TeX-command-default "Latexmk (xelatex)")
+    
+    (with-eval-after-load 'tex
+      (dolist (cmd '(("Latexmk (xelatex)" "latexmk -xelatex -interaction=nonstopmode -synctex=1 %s" TeX-run-TeX nil t :help "使用 latexmk (XeLaTeX) 编译")
+                     ("Latexmk Clean" "latexmk -c %s" TeX-run-command nil t :help "使用 latexmk 清理辅助文件")))
+        (push cmd TeX-command-list))
+      (setq TeX-view-program-list
+            '(("SumatraPDF"
+               "\"D:/Apps/Scoop/apps/SumatraPDF/current/SumatraPDF.exe\" -reuse-instance -forward-search \"%b\" %n \"%o\"")))
+      (setq TeX-view-program-selection
+            '((output-pdf "SumatraPDF"))))
+    
+    (defun my/latex-with-outline ()
+      (add-to-list 'minor-mode-overriding-map-alist
+                   `(outline-minor-mode . ,outline-minor-mode-map))
+      (outline-minor-mode 1))
+    
+    (defun latex-math-from-calc ()
+      "对光标所在行的内容执行 calc 求值"
+      (interactive)
+      (let ((calc-settings '(calc-language latex
+                                           calc-prefer-frac t
+                                           calc-angle-mode rad)))
+        (if (region-active-p)
+            (let* ((beg (region-beginning))
+                   (end (region-end))
+                   (string (buffer-substring-no-properties beg end)))
+              (delete-region beg end)
+              (insert (calc-eval (cons string calc-settings))))
+          (let ((l (thing-at-point 'line)))
+            (end-of-line 1)
+            (kill-line 0)
+            (insert (calc-eval (cons l calc-settings)))))))
+    
+    (add-hook 'LaTeX-mode-hook
+              (lambda ()
+                (setq TeX-auto-untabify t
+                      TeX-engine 'xetex
+                      TeX-show-compilation t
+                      TeX-save-query nil)
+                (TeX-global-PDF-mode t)
+                (imenu-add-menubar-index))))
+
+  (use-package preview
+    :after latex
+    :hook (LaTeX-mode . preview-larger-previews)
+    :config
+    (defun preview-larger-previews ()
+      (setq preview-scale-function
+            (lambda () (* 1.25 (funcall (preview-scale-from-face)))))))
+
+(use-package cdlatex
+  :ensure t
+  :hook ((LaTeX-mode . turn-on-cdlatex)
+         (cdlatex-tab . yas-expand)
+         (cdlatex-tab . cdlatex-in-yas-field))
+  :bind (:map cdlatex-mode-map
+         ("<tab>" . cdlatex-tab))
+  :config
+  (with-eval-after-load 'yasnippet
+    (define-key yas-keymap (kbd "<tab>") #'yas-next-field-or-cdlatex)
+    (define-key yas-keymap (kbd "TAB") #'yas-next-field-or-cdlatex)
+    
+    (defun cdlatex-in-yas-field ()
+      "在 Yas 字段中检查并处理 cdlatex"
+      (when-let* ((_ (overlayp yas--active-field-overlay))
+                  (end (overlay-end yas--active-field-overlay)))
+        (if (>= (point) end)
+            (let ((s (thing-at-point 'sexp)))
+              (unless (and s (assoc (substring-no-properties s)
+                                    cdlatex-command-alist-comb))
+                (yas-next-field-or-maybe-expand)
+                t))
+          (let (cdlatex-tab-hook minp)
+            (setq minp (min (save-excursion (cdlatex-tab) (point))
+                            (overlay-end yas--active-field-overlay)))
+            (goto-char minp)
+            t))))
+    
+    (defun yas-next-field-or-cdlatex ()
+      "正确处理 cdlatex 激活时跳转到下一个 Yas 字段"
+      (interactive)
+      (if (or (bound-and-true-p cdlatex-mode)
+              (bound-and-true-p org-cdlatex-mode))
+          (cdlatex-tab)
+        (yas-next-field-or-maybe-expand)))))
+
+(use-package org-table
+  :after cdlatex
+  :bind (:map orgtbl-mode-map
+         ("<tab>" . lazytab-org-table-next-field-maybe)
+         ("TAB" . lazytab-org-table-next-field-maybe))
+  :hook (cdlatex-tab . lazytab-cdlatex-or-orgtbl-next-field))
+
+(use-package consult-reftex
+  :vc (consult-reftex :url "https://github.com/karthink/consult-reftex" :rev :newest)
+  :after (reftex consult embark)
+  :bind (:map reftex-mode-map
+         ("C-c )" . consult-reftex-insert-reference)
+         ("C-c M-." . consult-reftex-goto-label)
+         :map org-mode-map
+         ("C-c (" . consult-reftex-goto-label)
+         ("C-c )" . consult-reftex-insert-reference))
+  :config
+  (with-eval-after-load 'embark
+    (defun consult-reftex--key-finder ()
+      (when (and
+             (or (derived-mode-p 'LaTeX-mode)
+                 (derived-mode-p 'org-mode))
+             (cl-intersection
+              '(font-lock-constant-face TeX-fold-unfolded-face)
+              (ensure-list (get-char-property (point) 'face))))
+        (save-excursion
+          (text-property-search-backward
+           'face 'font-lock-constant-face
+           (lambda (val prop) (memq val (ensure-list prop))))
+          (when (looking-back "\\(?:la\\)?\\(?:ref\\|bel\\){" (- (point) 5))
+            (backward-char 1)
+            (let* ((start (1+ (point)))
+                   (end (progn (forward-list)
+                               (1- (point)))))
+              `(reftex-label
+                ,(buffer-substring-no-properties start end)
+                ,start . ,end))))))
+    (cl-pushnew 'consult-reftex--key-finder embark-target-finders))
+  (setq consult-reftex-preview-function
+        #'consult-reftex-preview-make-window
+        consult-reftex-preferred-style-order
+        '("\\cref" "\\eqref" "\\ref"))
+  (consult-customize consult-reftex-insert-reference
+                     :preview-key (list :debounce 0.3 'any)))
+
+(use-package elisp-mode
+  :ensure nil
+  :bind (:map emacs-lisp-mode-map
+         ("C-c C-x" . ielm)
+         ("C-c C-c" . eval-defun)
+         ("C-c C-b" . eval-buffer))
+  :config
+  (defun my/lisp-indent-function (indent-point state)
+    "改进的 Lisp 缩进函数"
+    (let ((normal-indent (current-column))
+          (orig-point (point)))
+      (goto-char (1+ (elt state 1)))
+      (parse-partial-sexp (point) calculate-lisp-indent-last-sexp 0 t)
+      (cond
+       ((and (elt state 2)
+             (or (not (looking-at "\\sw\\|\\s_"))
+                 (looking-at ":")))
+        (unless (> (save-excursion (forward-line 1) (point))
+                   calculate-lisp-indent-last-sexp)
+          (goto-char calculate-lisp-indent-last-sexp)
+          (beginning-of-line)
+          (parse-partial-sexp (point) calculate-lisp-indent-last-sexp 0 t))
+        (backward-prefix-chars)
+        (current-column))
+       ((and (save-excursion
+               (goto-char indent-point)
+               (skip-syntax-forward " ")
+               (not (looking-at ":")))
+             (save-excursion
+               (goto-char orig-point)
+               (looking-at ":")))
+        (save-excursion
+          (goto-char (+ 2 (elt state 1)))
+          (current-column)))
+       (t
+        (let* ((function (buffer-substring (point)
+                                           (progn (forward-sexp 1) (point))))
+               (method (or (function-get (intern-soft function)
+                                         'lisp-indent-function)
+                           (get (intern-soft function) 'lisp-indent-hook))))
+          (cond ((or (eq method 'defun)
+                     (and (null method)
+                          (length> function 3)
+                          (string-match "\\`def" function)))
+                 (lisp-indent-defform state indent-point))
+                ((integerp method)
+                 (lisp-indent-specform method state indent-point normal-indent))
+                (method
+                 (funcall method indent-point state))))))))
+  
+  (add-hook 'emacs-lisp-mode-hook
+            (lambda () (setq-local lisp-indent-function #'my/lisp-indent-function)))
+  
+  (add-hook 'help-mode-hook #'cursor-sensor-mode)
+  
+  (defun function-advices (function)
+    "返回 FUNCTION 的所有 advice"
+    (let ((flist (indirect-function function)) advices)
+      (while (advice--p flist)
+        (push (advice--car flist) advices)
+        (setq flist (advice--cdr flist)))
+      (nreverse advices)))
+  
+  (defun add-remove-advice-button (advice function)
+    "为 ADVICE 添加移除按钮"
+    (when (and (functionp advice) (functionp function))
+      (let ((inhibit-read-only t)
+            (msg (format "Remove advice `%s'" advice)))
+        (insert "\t")
+        (insert-button
+         "Remove"
+         'face 'custom-button
+         'cursor-sensor-functions `((lambda (&rest _) (message ,msg)))
+         'help-echo msg
+         'action (lambda (_)
+                   (when (yes-or-no-p msg)
+                     (message "%s from function `%s'" msg function)
+                     (advice-remove function advice)
+                     (if (eq major-mode 'helpful-mode)
+                         (helpful-update)
+                       (revert-buffer nil t))))
+         'follow-link t))))
+  
+  (defun add-button-to-remove-advice (buffer-or-name function)
+    "在帮助缓冲区中添加移除 advice 的按钮"
+    (with-current-buffer buffer-or-name
+      (save-excursion
+        (goto-char (point-min))
+        (let ((ad-list (function-advices function)))
+          (while (re-search-forward
+                  "^\\(?:This function has \\)?:[-a-z]+ advice: \\(.+\\)$" nil t)
+            (when-let* ((advice (pop ad-list)))
+              (add-remove-advice-button advice function)))))))
+  
+  (define-advice describe-function-1 (:after (function) advice-remove-button)
+    (add-button-to-remove-advice (help-buffer) function))
+  
+  (with-eval-after-load 'helpful
+    (define-advice helpful-update (:after () advice-remove-button)
+      (when helpful--callable-p
+        (add-button-to-remove-advice (current-buffer) helpful--sym))))
+  
+  (defun remove-hook-at-point ()
+    "在 *Help* 缓冲区中移除光标处的 hook"
+    (interactive)
+    (unless (memq major-mode '(help-mode helpful-mode))
+      (error "仅适用于 help-mode 或 helpful-mode"))
+    (let ((orig-point (point)))
+      (save-excursion
+        (when-let* ((hook (progn (goto-char (point-min)) (symbol-at-point)))
+                    (func (when (and (or (re-search-forward "^Value:?[\s|\n]" nil t)
+                                         (goto-char orig-point))
+                                     (sexp-at-point))
+                            (end-of-sexp)
+                            (backward-char 1)
+                            (catch 'break
+                              (while t
+                                (condition-case nil
+                                    (backward-sexp)
+                                  (scan-error (throw 'break nil)))
+                                (when-let* ((bounds (bounds-of-thing-at-point 'sexp)))
+                                  (when (<= (car bounds) orig-point (cdr bounds))
+                                    (throw 'break (sexp-at-point)))))))))
+          (when (yes-or-no-p (format "Remove %s from %s? " func hook))
+            (remove-hook hook func)
+            (if (eq major-mode 'helpful-mode)
+                (helpful-update)
+              (revert-buffer nil t)))))))
+  
+  (bind-key "r" #'remove-hook-at-point help-mode-map))
+
+(use-package macrostep
+  :ensure t
+  :bind ((:map emacs-lisp-mode-map ("C-c e" . macrostep-expand))
+         (:map lisp-interaction-mode-map ("C-c e" . macrostep-expand))))
+
+(use-package helpful
+  :ensure t
+  :bind (([remap describe-function] . helpful-callable)
+         ([remap describe-command] . helpful-command)
+         ([remap describe-variable] . helpful-variable)
+         ([remap describe-key] . helpful-key)
+         ([remap describe-symbol] . helpful-symbol)
+         :map emacs-lisp-mode-map ("C-c C-d" . helpful-at-point)
+         :map lisp-interaction-mode-map ("C-c C-d" . helpful-at-point)
+         :map helpful-mode-map ("r" . remove-hook-at-point))
+  :hook (helpful-mode . cursor-sensor-mode)
+  :init
+  (with-eval-after-load 'apropos
+    (dolist (fun-bt '(apropos-function apropos-macro apropos-command))
+      (button-type-put fun-bt 'action
+                       (lambda (button)
+                         (helpful-callable (button-get button 'apropos-symbol)))))
+    (dolist (var-bt '(apropos-variable apropos-user-option))
+      (button-type-put var-bt 'action
+                       (lambda (button)
+                         (helpful-variable (button-get button 'apropos-symbol))))))
+  :config
+  (defun my/helpful--navigate (button)
+    "导航到 BUTTON 代表的路径"
+    (find-file-other-window (substring-no-properties (button-get button 'path)))
+    (when-let* ((pos (get-text-property button 'position (marker-buffer button))))
+      (helpful--goto-char-widen pos)))
+  
+  (advice-add #'helpful--navigate :override #'my/helpful--navigate))
+
+(use-package python
+  :defer t                       ; 关键：不立即加载
+  :mode ("\\.py\\'" . python-ts-mode) ; 仅当打开 .py 时才加载 python.el
+  :init
+  ;; 这些变量必须在 package 加载前生效
+  (setq python-shell-completion-native-enable nil)
+  :config
+  (defun my/uv-activate ()
+    "Activate Python environment managed by uv based on current project directory.
+Looks for .venv directory in project root and activates the Python interpreter."
+    (interactive)
+    (let* ((project-root (project-root (project-current t)))
+           (venv-path (expand-file-name ".venv" project-root))
+           (python-path (expand-file-name
+                         (if (eq system-type 'windows-nt)
+                             "Scripts/python.exe"
+                           "bin/python")
+                         venv-path)))
+      (if (file-exists-p python-path)
+          (progn
+            ;; Set Python interpreter path
+            (setq python-shell-interpreter python-path)
+
+            ;; Update exec-path to include the venv's bin directory
+            (let ((venv-bin-dir (file-name-directory python-path)))
+              (setq exec-path (cons venv-bin-dir
+                                    (remove venv-bin-dir exec-path))))
+
+            ;; Update PATH environment variable
+            (setenv "PATH" (concat (file-name-directory python-path)
+                                   path-separator
+                                   (getenv "PATH")))
+
+            ;; Update VIRTUAL_ENV environment variable
+            (setenv "VIRTUAL_ENV" venv-path)
+
+            ;; Remove PYTHONHOME if it exists
+            (setenv "PYTHONHOME" nil)
+
+            (message "Activated UV Python environment at %s" venv-path))
+        (error "No UV Python environment found in %s" project-root))))
+  (add-to-list 'major-mode-remap-alist '(python-mode . python-ts-mode))
+  (add-hook 'python-ts-mode-hook
+            (lambda ()
+              (setq python-indent-offset 4)
+              (setq indent-tabs-mode nil)))
+  ;; 1. 关闭 inferior 缓冲区退出时确认框
+  (add-hook 'inferior-python-mode-hook
+            (lambda ()
+              (when-let* ((proc (get-process "Python")))
+                (process-query-on-exit-flag proc))))
+  ;; 2. eglot 语言服务器（ty）
+  (with-eval-after-load 'eglot
+    (add-to-list 'eglot-server-programs
+                 `((python-ts-mode python-mode) . ("ty" "server"))))
+  ;; 3. flymake-ruff（如果装了 ruff）
+  (use-package flymake-ruff
+    :ensure t
+    :defer t
+    :hook (python-base-mode . flymake-ruff-load))
+  ;; 4. 自动把 python-shell-interpreter 换成 python3
+  (setq python-shell-interpreter "python"))
+
+;; [rainbow-delimiters] Highlight brackets according to their depth
+(use-package rainbow-delimiters
+  :ensure t
+  :hook (prog-mode . rainbow-delimiters-mode)
+  :config
+  (setq rainbow-delimiters-max-face-count 5))
+(use-package prog-mode
+  :hook ((prog-mode LaTeX-mode org-mode) . display-fill-column-indicator-mode))
+
+(defvar my/gptel-cache-dir (locate-user-emacs-file "etc/gptel/"))
+(unless (file-directory-p my/gptel-cache-dir)
+  (make-directory my/gptel-cache-dir t))
+
+(use-package gptel
+  :ensure t
+  :config
+  (setq gptel-default-mode 'org-mode
+        gptel-use-curl nil
+        gptel-model 'kimi-k2-thinking
+        gptel-backend
+        (gptel-make-openai "Aliyun Bailian"
+          :host "dashscope.aliyuncs.com"
+          :endpoint "/compatible-mode/v1/chat/completions"
+          :stream t
+          :key "sk-0e8850453d3543a895b0393acab5128b"
+          :models '(qwen-max qwen-plus qwen-turbo kimi-k2-thinking)))
+  :bind (("C-c C-<return>" . gptel-menu)
+         ("C-c <return>" . gptel-send)
+         ("C-c C-g" . gptel-abort)
+         :map gptel-mode-map
+         ("C-c C-x t" . gptel-set-topic))
+  :custom
+  (gptel-prompt-prefix-alist
+   '((markdown-mode . "### ")
+     (org-mode . "* ")
+     (text-mode . "### ")))
+  (gptel-response-prefix-alist
+   '((markdown-mode . "")
+     (org-mode . "")
+     (text-mode . ""))))
+
+(defun replace-and-trim-latex (&rest _)
+  "将 LaTeX 分隔符替换为 $, $$"
+  (save-excursion
+    (goto-char (point-min))
+    (let ((replacements '(("\\\\(" . "$")
+                          ("\\\\)" . "$")
+                          ("\\\\\\[" . "$$")
+                          ("\\\\\\]" . "$$"))))
+      (dolist (pair replacements)
+        (goto-char (point-min))
+        (while (re-search-forward (car pair) nil t)
+          (replace-match (cdr pair) nil nil))))
+    (goto-char (point-min))
+    (while (re-search-forward "\\(?:^\\| \\)\\$\\(?: \\|$\\)" nil t)
+      (replace-match "$" nil nil))))
+(add-hook 'gptel-post-response-functions #'replace-and-trim-latex)
+
+(use-package diminish
+  :ensure t)
+
+(use-package persistent-scratch
+  :ensure t
+  :diminish
+  :bind (:map persistent-scratch-mode-map
+         ([remap kill-buffer] . (lambda (&rest _)
+                                  (interactive)
+                                  (user-error "Scratch 缓冲区无法关闭")))
+         ([remap revert-buffer] . persistent-scratch-restore)
+         ([remap revert-this-buffer] . persistent-scratch-restore))
+  :hook ((after-init . persistent-scratch-autosave-mode)
+         (lisp-interaction-mode . persistent-scratch-mode))
+  :init
+  (setq persistent-scratch-save-file
+        (locate-user-emacs-file "etc/persistent-scratch/.persistent-scratch")
+        persistent-scratch-backup-file-name-format "%Y-%m-%d"
+        persistent-scratch-backup-directory
+        (locate-user-emacs-file "etc/persistent-scratch/")))
+
+(setq transient-levels-file (locate-user-emacs-file "etc/transient/levels.el")
+      transient-values-file (locate-user-emacs-file "etc/transient/values.el")
+      transient-history-file (locate-user-emacs-file "etc/transient/history.el"))
+
+(use-package rg
+  :ensure t
+  :hook (after-init . rg-enable-default-bindings)
+  :bind (:map rg-global-map
+         ("c" . rg-dwim-current-dir)
+         ("f" . rg-dwim-current-file)
+         ("m" . rg-menu))
+  :init
+  (setq rg-group-result t
+        rg-show-columns t)
+  :config
+  (cl-pushnew '("tmpl" . "*.tmpl") rg-custom-type-aliases))
+
+(use-package vundo
+  :ensure t
+  :bind ("C-x u" . vundo)
+  :config
+  (setq vundo-glyph-alist vundo-unicode-symbols))
+
+(use-package magit
+  :ensure t
+  :hook (git-commit-setup . git-commit-turn-on-flyspell)
+  :bind (("C-x g" . magit-status)
+         ("C-x M-g" . magit-dispatch)
+         ("C-c M-g" . magit-file-dispatch))
+  :custom
+  (magit-diff-refine-hunk t)
+  (magit-diff-paint-whitespace nil)
+  (magit-ediff-dwim-show-on-hunks t))
+
+(use-package gptel-commit
+  :after (gptel magit)
+  :config
+  (setq gptel-commit-model 'kimi-k2-thinking
+        gptel-commit-backend
+        (gptel-make-openai "Aliyun Bailian"
+          :host "dashscope.aliyuncs.com"
+          :endpoint "/compatible-mode/v1/chat/completions"
+          :stream t
+          :key "sk-0e8850453d3543a895b0393acab5128b"
+          :models '(qwen-max qwen-plus qwen-turbo kimi-k2-thinking))
+        ;;gptel-commit-backend (gptel-make-gh-copilot "Copilot")
+        gptel-commit-prompt
+        "You are an expert at writing Git commits. Your job is to write a short clear commit message that summarizes the changes.
+
+  If you can accurately express the change in just the subject line, don't include anything in the message body. Only use the body when it is providing *useful* information.
+
+  Don't repeat information from the subject line in the message body.
+
+  Only return the commit message in your response. Do not include any additional meta-commentary about the task. Do not include the raw diff output in the commit message.
+
+  Follow good Git style:
+
+  - Separate the subject from the body with a blank line
+  - Try to limit the subject line to 50 characters
+  - Capitalize the subject line
+  - Do not end the subject line with any punctuation
+  - Use the imperative mood in the subject line
+  - Wrap the body at 72 characters
+  - Keep the body short and concise (omit it entirely if not useful)")
+  :custom
+  (gptel-commit-stream t))
+(with-eval-after-load 'magit
+  (define-key git-commit-mode-map (kbd "C-c g") #'gptel-commit)
+  (define-key git-commit-mode-map (kbd "C-c G") #'gptel-commit-rationale))
+
+(use-package cal-china-x
+    :ensure t
+    :defer t
+    :commands cal-china-x-setup
+    :hook (calendar-mode . cal-china-x-setup)
+    :config
+    (setq calendar-mark-holidays-flag t
+          cal-china-x-important-holidays cal-china-x-chinese-holidays
+          cal-china-x-general-holidays '((holiday-lunar 1 15 "元宵节")
+                                         (holiday-lunar 7 7 "七夕节")
+                                         (holiday-fixed 3 8 "妇女节")
+                                         (holiday-fixed 3 12 "植树节")
+                                         (holiday-fixed 5 4 "青年节")
+                                         (holiday-fixed 6 1 "儿童节")
+                                         (holiday-fixed 9 10 "教师节"))
+          holiday-other-holidays '((holiday-fixed 2 14 "情人节")
+                                   (holiday-fixed 4 1 "愚人节")
+                                   (holiday-fixed 12 25 "圣诞节")
+                                   (holiday-float 5 0 2 "母亲节")
+                                   (holiday-float 6 0 3 "父亲节")
+                                   (holiday-float 11 4 4 "感恩节"))
+          calendar-holidays (append cal-china-x-important-holidays
+                                    cal-china-x-general-holidays
+                                    holiday-other-holidays)))
 ;;; init.el ends here

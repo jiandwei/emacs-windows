@@ -1818,10 +1818,10 @@
 
 *** Org -> Html导出
 #+BEGIN_SRC emacs-lisp
-;; 导出 HTML 时自动追加 org.css
-(with-eval-after-load 'ox-html
-  (setq org-html-head-extra
-        "<link rel=\"stylesheet\" type=\"text/css\" href=\"https://raw.githubusercontent.com/jiandwei/emacs-windows/refs/heads/master/org.css\"/>"))
+  ;; 导出 HTML 时自动追加 org.css
+  (with-eval-after-load 'ox-html
+    (setq org-html-head-extra
+          "<link rel=\"stylesheet\" type=\"text/css\" href=\"https://gongzhitaao.org/orgcss/org.css\"/>"))
 #+END_SRC
 
 ** LaTeX 配置

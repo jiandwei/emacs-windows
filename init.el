@@ -49,7 +49,7 @@
     (gcmh-high-cons-threshold #x12800000))
 
   ;; Server 模式
-
+ 
 (use-package server
   :ensure nil
   :hook (after-init . server-mode))
@@ -197,7 +197,7 @@
 ;;   "当前实际用到的汉字字体家族，给后面 bold 映射用。")
 
 ;; (defun my/setup-fonts ()
-;;  "Apply fonts to the current frame."
+;;  "Apply fonts to the current frame."	
  ;;  (when (display-graphic-p)
 ;;     ;; 1. 英文字体
 ;;     (set-face-attribute 'default nil
@@ -433,7 +433,7 @@
   :custom
   (completion-styles '(orderless basic))
   (completion-category-overrides '((file (styles basic partial-completion))))
-  (completion-category-defaults nil) ;; Disable defaults, use our settings
+  (completion-category-defaults nil) ;; Disable defaults, use our settings    
   (orderless-component-separator #'orderless-escapable-split-on-space))
 
 (use-package pinyinlib
@@ -959,7 +959,7 @@
       (let (entries)
         (dolist (full-record (bookmark-maybe-sort-alist))
           (let* ((name (bookmark-name-from-record full-record))
-
+                
                (annotation (bookmark-get-annotation full-record))
                (location (bookmark-location full-record))
                (file (file-name-nondirectory location))
@@ -1503,7 +1503,7 @@
         appt-audible t
         appt-display-diary nil
         appt-display-format 'window)
-
+  
   (defun my/appt-display (min-to-app new-time msg)
     "自定义的提醒显示函数。"
     (let ((title (format "📅 Agenda 提醒 (%s分钟后)" min-to-app)))
@@ -1517,16 +1517,16 @@
                           ((< (string-to-number min-to-app) 10) 'high)
                           (t 'moderate))
                :category 'org-agenda))))
-
+  
   (setq appt-disp-window-function #'my/appt-display)
-
+  
   (defun my/org-agenda-to-appt ()
     "从 Org Agenda 文件中提取所有约会。"
     (interactive)
     (setq appt-time-msg-list nil)
     (org-agenda-to-appt t)
     (message "已从 Agenda 加载 %d 个约会提醒" (length appt-time-msg-list)))
-
+  
   (run-at-time nil 3600 'my/org-agenda-to-appt)
   (add-hook 'org-finalize-agenda-hook 'my/org-agenda-to-appt)
   (add-hook 'org-after-todo-state-change-hook 'my/org-agenda-to-appt)
@@ -1581,7 +1581,7 @@
 ;; 导出 HTML 时自动追加 org.css
 (with-eval-after-load 'ox-html
   (setq org-html-head-extra
-        "<link rel=\"stylesheet\" type=\"text/css\" href=\"https://gongzhitaao.org/orgcss/org.css\"/>"))
+        "<link rel=\"stylesheet\" type=\"text/css\" href=\"https://raw.githubusercontent.com/jiandwei/emacs-windows/refs/heads/master/org.css\"/>"))
 
 (with-eval-after-load 'ox-latex
   (setq org-latex-pdf-process '("latexmk -xelatex -quiet -shell-escape -f %f"))
@@ -1695,7 +1695,7 @@
           TeX-source-correlate-method 'synctex
           TeX-engine 'xetex
           TeX-command-default "Latexmk (xelatex)")
-
+    
     (with-eval-after-load 'tex
       (dolist (cmd '(("Latexmk (xelatex)" "latexmk -xelatex -interaction=nonstopmode -synctex=1 %s" TeX-run-TeX nil t :help "使用 latexmk (XeLaTeX) 编译")
                      ("Latexmk Clean" "latexmk -c %s" TeX-run-command nil t :help "使用 latexmk 清理辅助文件")))
@@ -1705,12 +1705,12 @@
                "\"D:/Apps/Scoop/apps/SumatraPDF/current/SumatraPDF.exe\" -reuse-instance -forward-search \"%b\" %n \"%o\"")))
       (setq TeX-view-program-selection
             '((output-pdf "SumatraPDF"))))
-
+    
     (defun my/latex-with-outline ()
       (add-to-list 'minor-mode-overriding-map-alist
                    `(outline-minor-mode . ,outline-minor-mode-map))
       (outline-minor-mode 1))
-
+    
     (defun latex-math-from-calc ()
       "对光标所在行的内容执行 calc 求值"
       (interactive)
@@ -1727,7 +1727,7 @@
             (end-of-line 1)
             (kill-line 0)
             (insert (calc-eval (cons l calc-settings)))))))
-
+    
     (add-hook 'LaTeX-mode-hook
               (lambda ()
                 (setq TeX-auto-untabify t
@@ -1756,7 +1756,7 @@
   (with-eval-after-load 'yasnippet
     (define-key yas-keymap (kbd "<tab>") #'yas-next-field-or-cdlatex)
     (define-key yas-keymap (kbd "TAB") #'yas-next-field-or-cdlatex)
-
+    
     (defun cdlatex-in-yas-field ()
       "在 Yas 字段中检查并处理 cdlatex"
       (when-let* ((_ (overlayp yas--active-field-overlay))
@@ -1772,7 +1772,7 @@
                             (overlay-end yas--active-field-overlay)))
             (goto-char minp)
             t))))
-
+    
     (defun yas-next-field-or-cdlatex ()
       "正确处理 cdlatex 激活时跳转到下一个 Yas 字段"
       (interactive)
@@ -1875,12 +1875,12 @@
                  (lisp-indent-specform method state indent-point normal-indent))
                 (method
                  (funcall method indent-point state))))))))
-
+  
   (add-hook 'emacs-lisp-mode-hook
             (lambda () (setq-local lisp-indent-function #'my/lisp-indent-function)))
-
+  
   (add-hook 'help-mode-hook #'cursor-sensor-mode)
-
+  
   (defun function-advices (function)
     "返回 FUNCTION 的所有 advice"
     (let ((flist (indirect-function function)) advices)
@@ -1888,7 +1888,7 @@
         (push (advice--car flist) advices)
         (setq flist (advice--cdr flist)))
       (nreverse advices)))
-
+  
   (defun add-remove-advice-button (advice function)
     "为 ADVICE 添加移除按钮"
     (when (and (functionp advice) (functionp function))
@@ -1908,7 +1908,7 @@
                          (helpful-update)
                        (revert-buffer nil t))))
          'follow-link t))))
-
+  
   (defun add-button-to-remove-advice (buffer-or-name function)
     "在帮助缓冲区中添加移除 advice 的按钮"
     (with-current-buffer buffer-or-name
@@ -1919,15 +1919,15 @@
                   "^\\(?:This function has \\)?:[-a-z]+ advice: \\(.+\\)$" nil t)
             (when-let* ((advice (pop ad-list)))
               (add-remove-advice-button advice function)))))))
-
+  
   (define-advice describe-function-1 (:after (function) advice-remove-button)
     (add-button-to-remove-advice (help-buffer) function))
-
+  
   (with-eval-after-load 'helpful
     (define-advice helpful-update (:after () advice-remove-button)
       (when helpful--callable-p
         (add-button-to-remove-advice (current-buffer) helpful--sym))))
-
+  
   (defun remove-hook-at-point ()
     "在 *Help* 缓冲区中移除光标处的 hook"
     (interactive)
@@ -1954,7 +1954,7 @@
             (if (eq major-mode 'helpful-mode)
                 (helpful-update)
               (revert-buffer nil t)))))))
-
+  
   (bind-key "r" #'remove-hook-at-point help-mode-map))
 
 (use-package macrostep
@@ -1989,7 +1989,7 @@
     (find-file-other-window (substring-no-properties (button-get button 'path)))
     (when-let* ((pos (get-text-property button 'position (marker-buffer button))))
       (helpful--goto-char-widen pos)))
-
+  
   (advice-add #'helpful--navigate :override #'my/helpful--navigate))
 
 (use-package python

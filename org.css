@@ -1,0 +1,236 @@
+/*! normalize.css v4.1.1 | MIT License | github.com/necolas/normalize.css */
+html{font-family:sans-serif;line-height:1.15;-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%}
+body{margin:0}
+/* ... (normalize.css 部分保持不变，省略以节省篇幅) ... */
+
+/* ====================== 日间模式（默认浅色） ====================== */
+body {
+    width: 95%;
+    max-width: 900px;
+    margin: 2% auto;
+    font-size: 18px;
+    line-height: 1.6;
+    font-family: Georgia, "Xin Gothic", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", serif;
+    color: #333;
+    background-color: #fffff8;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+@media screen and (min-width: 600px) {
+    body { font-size: 18px; }
+}
+
+/* ====================== 夜间模式（自动切换） ====================== */
+@media (prefers-color-scheme: dark) {
+    body {
+        color: #d4d4d4;
+        background-color: #1e1e1e;
+    }
+
+    a { color: #8ab4f8; }
+    a:hover { color: #ffffff; border-bottom: 1px dotted; }
+
+    h1, h2, h3, h4, h5, h6 { color: #ffffff; }
+
+    blockquote { border-left-color: #555; }
+
+    table, thead { border-color: #444; }
+    table tr { border-top: 1px solid #444; }
+    table td+td, table th+th { border-left: 1px solid #444; }
+
+    .org-src-container {
+        border-color: #444;
+        box-shadow: 3px 3px 6px #0d0d0d;
+        background-color: #2d2d2d;
+    }
+
+    .org-src-container > pre:before {
+        background-color: #444;
+        color: #ddd;
+    }
+
+    code, pre { background-color: #2d2d2d; color: #d4d4d4; }
+    :not(pre)>code { background-color: #3a3a3a; border-color: #555; }
+
+    .todo { background-color: #5f3333; }
+    .done { background-color: #335533; }
+
+    hr { background-color: #444; }
+}
+
+/* ====================== 通用样式调整 ====================== */
+::-moz-selection { background: #d6edff; }
+::selection { background: #d6edff; }
+
+@media (prefers-color-scheme: dark) {
+    ::-moz-selection { background: #3a5fa0; }
+    ::selection { background: #3a5fa0; }
+}
+
+p { margin: 1em auto; }
+
+.title {
+    margin: 1.2em auto;
+    text-align: center;
+    color: #a5573e;
+    font-size: 2em;
+}
+
+.subtitle {
+    text-align: center;
+    font-weight: 700;
+    margin: 1em auto;
+}
+
+.abstract {
+    width: 80%;
+    margin: 2em auto;
+    font-style: italic;
+    padding: 1em 2em;
+    border-left: 4px solid #ccc;
+    background: #f9f9f9;
+}
+
+@media (prefers-color-scheme: dark) {
+    .abstract {
+        background: #2a2a2a;
+        border-left-color: #666;
+    }
+}
+
+/* ====================== 目录改为中文 ====================== */
+#table-of-contents h2 {
+    font-size: 1.5em;
+    text-align: center;
+}
+
+/* Org-mode 导出时默认标题是 "Table of Contents"，这里强制改为中文 */
+#table-of-contents h2::before {
+    content: "目录";
+    display: block;
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+/* 隐藏原始英文标题（如果存在） */
+#table-of-contents h2:empty::before {
+    content: "目录";
+}
+#table-of-contents h2 {
+    display: none;
+}
+#table-of-contents h2 + ul {
+    display: block !important;
+}
+#table-of-contents h2 + ul::before {
+    content: "目录";
+    display: block;
+    font-size: 1.5em;
+    font-weight: bold;
+    text-align: center;
+    margin: 1.5em 0 1em;
+    color: #a5573e;
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+    #table-of-contents h2 + ul::before {
+        color: #ffffff;
+    }
+}
+
+/* ====================== 其他美化 ====================== */
+h1, h2, h3, h4, h5, h6 {
+    color: #a5573e;
+    font-family: "PingFang SC", "Microsoft YaHei", Helvetica, sans-serif;
+    line-height: 1.4;
+}
+
+@media (prefers-color-scheme: dark) {
+    h1, h2, h3, h4, h5, h6 { color: #ffccaa; }
+}
+
+a {
+    color: #527d9a;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #035;
+    border-bottom: 1px dotted;
+}
+
+blockquote {
+    margin: 1em 2em;
+    padding-left: 1em;
+    border-left: 3px solid #ccc;
+}
+
+table {
+    margin: 2em auto;
+    border-collapse: collapse;
+    border-top: 2px solid #999;
+    border-bottom: 2px solid #999;
+}
+
+td, th {
+    padding: .4em .8em;
+    border-left: 1px solid #bbb;
+}
+
+:not(pre)>code {
+    padding: 3px 6px;
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 85%;
+}
+
+.org-src-container {
+    position: relative;
+    margin: 1.5em auto;
+    padding: 0;
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 6px #eee;
+    background: #fdfdfd;
+}
+
+.org-src-container > pre {
+    margin: 0;
+    padding: 1em;
+    overflow: auto;
+    background: transparent;
+}
+
+.org-src-container > pre:before {
+    content: attr(data-lang);
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 0.2em 0.8em;
+    background: #b3b3b3;
+    color: #fff;
+    font-size: 80%;
+    border-bottom-left-radius: 6px;
+}
+
+/* 常见语言标签 */
+.src-sh:before, .src-bash:before { content: "Shell"; }
+.src-emacs-lisp:before { content: "Emacs Lisp"; }
+.src-python:before { content: "Python"; }
+.src-css:before { content: "CSS"; }
+.src-js:before, .src-javascript:before { content: "JavaScript"; }
+/* 可继续添加其他语言 */
+
+.todo { background-color: #cc6666; color: white; }
+.done { background-color: #66aa66; color: white; }
+
+#postamble, #preamble {
+    font-size: 90%;
+    text-align: center;
+    margin: 2em auto;
+    color: #666;
+}
+
+@media (prefers-color-scheme: dark) {
+    #postamble, #preamble { color: #aaa; }
+}

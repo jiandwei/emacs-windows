@@ -215,12 +215,6 @@
   (setq use-short-answers t)
   (setq y-or-n-p-use-read-key t
         read-char-choice-use-read-key t)
-
-  ;; 默认设置
-  (setq-default major-mode 'text-mode
-                fill-column 80
-                tab-width 4)
-
   (setq visible-bell t
         inhibit-compacting-font-caches t
         delete-by-moving-to-trash t

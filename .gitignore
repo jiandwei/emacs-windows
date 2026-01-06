@@ -27,3 +27,4 @@ tramp
 /tree-sitter/
 /.org-id-locations
 init.el
+/*.el

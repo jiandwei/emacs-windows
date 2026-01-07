@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: literate-python
+# key: litpy
+# --
+#+PROPERTY: header-args:python :result output
+#+STARTUP: showall
+#+OPTIONS: toc:2 num:t
+
+
+#+BEGIN_SRC python
+$0
+#+END_SRC

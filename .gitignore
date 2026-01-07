@@ -28,3 +28,4 @@ tramp
 /.org-id-locations
 init.el
 /*.el
+/transient/

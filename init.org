@@ -2697,58 +2697,77 @@
 #+end_src
 
 ** 工具集成
-*** GPTel
-
+*** Emacs 集成 GPG
 #+begin_src emacs-lisp
-  (defvar my/gptel-cache-dir (locate-user-emacs-file "etc/gptel/"))
-  (unless (file-directory-p my/gptel-cache-dir)
-    (make-directory my/gptel-cache-dir t))
+;;; ========== GPG 配置 ==========
+(use-package epa-file
+  :ensure nil  ;; Emacs 内置
+  :config
+  (epa-file-enable)
+  ;; ========== 密码缓存（可选）==========
+  ;; 避免频繁输入密码，缓存 10 分钟
+  (setq epa-file-cache-passphrase-for-symmetric-encryption t
+        epa-file-select-keys t  ;; 自动选择密钥
+        epg-pinentry-mode 'loopback))  ;; 在 minibuffer 输入密码
+;;; ========== Auth-source 配置 ==========
+(use-package auth-source
+  :ensure nil
+  :config
+  (setq auth-sources (list(locate-user-emacs-file "etc/authinfo.gpg")))  ;; 指定加密文件
+  (setq auth-source-cache-expiry nil))  ;; 永不过期
+#+end_src
+*** GPTel
+#+begin_src emacs-lisp
+(defvar my/gptel-cache-dir (locate-user-emacs-file "etc/gptel/"))
+(unless (file-directory-p my/gptel-cache-dir)
+  (make-directory my/gptel-cache-dir t))
+(use-package gptel
+  :ensure t
+  :commands (gptel gptel-send gptel-menu gptel-abort)
+  :config
+  (setq gptel-default-mode 'org-mode
+        gptel-use-curl nil
+        gptel-model 'kimi-k2-thinking
+        gptel-backend
+        (gptel-make-openai "Aliyun Bailian"
+          :host "dashscope.aliyuncs.com"
+          :endpoint "/compatible-mode/v1/chat/completions"
+          :stream t
+          :key #'gptel-api-key-from-auth-source
+          ;;(auth-source-pick-first-password :host "dashscope.aliyuncs.com" :user "dashscope")
+          ;;"sk-0e8850453d3543a895b0393acab5128b"
+          :models '(qwen-max qwen-plus qwen-turbo kimi-k2-thinking)))
+  :bind (("C-c C-<return>" . gptel-menu)
+         ("C-c <return>" . gptel-send)
+         ("C-c C-g" . gptel-abort)
+         :map gptel-mode-map
+         ("C-c C-x t" . gptel-set-topic))
+  :custom
+  (gptel-prompt-prefix-alist
+   '((markdown-mode . "### ")
+     (org-mode . "* ")
+     (text-mode . "### ")))
+  (gptel-response-prefix-alist
+   '((markdown-mode . "")
+     (org-mode . "")
+     (text-mode . ""))))
 
-  (use-package gptel
-    :ensure t
-:commands (gptel gptel-send gptel-menu gptel-abort)
-    :config
-    (setq gptel-default-mode 'org-mode
-          gptel-use-curl nil
-          gptel-model 'kimi-k2-thinking
-          gptel-backend
-          (gptel-make-openai "Aliyun Bailian"
-            :host "dashscope.aliyuncs.com"
-            :endpoint "/compatible-mode/v1/chat/completions"
-            :stream t
-            :key "sk-0e8850453d3543a895b0393acab5128b"
-            :models '(qwen-max qwen-plus qwen-turbo kimi-k2-thinking)))
-    :bind (("C-c C-<return>" . gptel-menu)
-           ("C-c <return>" . gptel-send)
-           ("C-c C-g" . gptel-abort)
-           :map gptel-mode-map
-           ("C-c C-x t" . gptel-set-topic))
-    :custom
-    (gptel-prompt-prefix-alist
-     '((markdown-mode . "### ")
-       (org-mode . "* ")
-       (text-mode . "### ")))
-    (gptel-response-prefix-alist
-     '((markdown-mode . "")
-       (org-mode . "")
-       (text-mode . ""))))
-
-  (defun replace-and-trim-latex (&rest _)
-    "将 LaTeX 分隔符替换为 $, $$"
-    (save-excursion
-      (goto-char (point-min))
-      (let ((replacements '(("\\\\(" . "$")
-                            ("\\\\)" . "$")
-                            ("\\\\\\[" . "$$")
-                            ("\\\\\\]" . "$$"))))
-        (dolist (pair replacements)
-          (goto-char (point-min))
-          (while (re-search-forward (car pair) nil t)
-            (replace-match (cdr pair) nil nil))))
-      (goto-char (point-min))
-      (while (re-search-forward "\\(?:^\\| \\)\\$\\(?: \\|$\\)" nil t)
-        (replace-match "$" nil nil))))
-  (add-hook 'gptel-post-response-functions #'replace-and-trim-latex)
+(defun replace-and-trim-latex (&rest _)
+  "将 LaTeX 分隔符替换为 $, $$"
+  (save-excursion
+    (goto-char (point-min))
+    (let ((replacements '(("\\\\(" . "$")
+                          ("\\\\)" . "$")
+                          ("\\\\\\[" . "$$")
+                          ("\\\\\\]" . "$$"))))
+      (dolist (pair replacements)
+        (goto-char (point-min))
+        (while (re-search-forward (car pair) nil t)
+          (replace-match (cdr pair) nil nil))))
+    (goto-char (point-min))
+    (while (re-search-forward "\\(?:^\\| \\)\\$\\(?: \\|$\\)" nil t)
+      (replace-match "$" nil nil))))
+(add-hook 'gptel-post-response-functions #'replace-and-trim-latex)
 #+end_src
 
 *** Persistent Scratch
@@ -2824,41 +2843,10 @@
     (magit-diff-paint-whitespace nil)
     (magit-ediff-dwim-show-on-hunks t))
 
-  (use-package gptel-commit
-    :after (gptel magit)
-    :config
-    (setq gptel-commit-model 'kimi-k2-thinking
-          gptel-commit-backend
-          (gptel-make-openai "Aliyun Bailian"
-            :host "dashscope.aliyuncs.com"
-            :endpoint "/compatible-mode/v1/chat/completions"
-            :stream t
-            :key "sk-0e8850453d3543a895b0393acab5128b"
-            :models '(qwen-max qwen-plus qwen-turbo kimi-k2-thinking))
-          ;;gptel-commit-backend (gptel-make-gh-copilot "Copilot")
-          gptel-commit-prompt
-          "You are an expert at writing Git commits. Your job is to write a short clear commit message that summarizes the changes.
+(use-package gptel-magit
+  :ensure t
+  :hook (magit-mode . gptel-magit-install))
 
-    If you can accurately express the change in just the subject line, don't include anything in the message body. Only use the body when it is providing *useful* information.
-
-    Don't repeat information from the subject line in the message body.
-
-    Only return the commit message in your response. Do not include any additional meta-commentary about the task. Do not include the raw diff output in the commit message.
-
-    Follow good Git style:
-
-    - Separate the subject from the body with a blank line
-    - Try to limit the subject line to 50 characters
-    - Capitalize the subject line
-    - Do not end the subject line with any punctuation
-    - Use the imperative mood in the subject line
-    - Wrap the body at 72 characters
-    - Keep the body short and concise (omit it entirely if not useful)")
-    :custom
-    (gptel-commit-stream t))
-  (with-eval-after-load 'magit
-    (define-key git-commit-mode-map (kbd "C-c g") #'gptel-commit)
-    (define-key git-commit-mode-map (kbd "C-c G") #'gptel-commit-rationale))
 (use-package markdown-mode
   :ensure t
   :defer t
@@ -2944,6 +2932,7 @@
           calendar-holidays (append cal-china-x-important-holidays
                                     cal-china-x-general-holidays
                                     holiday-other-holidays)))
+
 ;;; init.el ends here
 #+end_src
 

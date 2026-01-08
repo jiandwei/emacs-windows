@@ -2193,7 +2193,10 @@
          (LaTeX-mode . my/latex-with-outline))
   :bind (:map LaTeX-mode-map
          ("C-S-e" . latex-math-from-calc)
-         ([remap LaTeX-environment] . cdlatex-environment))
+         ([remap LaTeX-environment] . cdlatex-environment)
+         ("C-c C-v" . TeX-view)           ; 正向搜索：LaTeX → PDF
+         ("C-c C-c" . TeX-command-master) ; 编译
+         ("C-c C-a" . TeX-command-run-all)) ; 编译所有
   :config
   (setq TeX-auto-save t
         TeX-parse-self t
@@ -2212,50 +2215,49 @@
     (dolist (cmd '(("Latexmk (xelatex)" "latexmk -xelatex -interaction=nonstopmode -synctex=1 %s" TeX-run-TeX nil t :help "使用 latexmk (XeLaTeX) 编译")
                    ("Latexmk Clean" "latexmk -c %s" TeX-run-command nil t :help "使用 latexmk 清理辅助文件")))
       (push cmd TeX-command-list))
-    (setq TeX-view-program-list
-          '(("SumatraPDF"
-             "\"D:/Apps/Scoop/apps/SumatraPDF/current/SumatraPDF.exe\" -reuse-instance -forward-search \"%b\" %n \"%o\"")))
-    (setq TeX-view-program-selection
-          '((output-pdf "SumatraPDF"))))
+    (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
+          TeX-view-program-list '(("PDF Tools" TeX-pdf-tools-sync-view)))
+    ;; ----- 编译后自动刷新 PDF -----
+    (add-hook 'TeX-after-compilation-finished-functions
+              #'TeX-revert-document-buffer)
 
-  (defun my/latex-with-outline ()
-    (add-to-list 'minor-mode-overriding-map-alist
-                 `(outline-minor-mode . ,outline-minor-mode-map))
-    (outline-minor-mode 1))
+    (defun my/latex-with-outline ()
+      (add-to-list 'minor-mode-overriding-map-alist
+                   `(outline-minor-mode . ,outline-minor-mode-map))
+      (outline-minor-mode 1))
 
-  (defun latex-math-from-calc ()
-    "对光标所在行的内容执行 calc 求值"
-    (interactive)
-    (let ((calc-settings '(calc-language latex
-                                         calc-prefer-frac t
-                                         calc-angle-mode rad)))
-      (if (region-active-p)
-          (let* ((beg (region-beginning))
-                 (end (region-end))
-                 (string (buffer-substring-no-properties beg end)))
-            (delete-region beg end)
-            (insert (calc-eval (cons string calc-settings))))
-        (let ((l (thing-at-point 'line)))
-          (end-of-line 1)
-          (kill-line 0)
-          (insert (calc-eval (cons l calc-settings)))))))
+    (defun latex-math-from-calc ()
+      "对光标所在行的内容执行 calc 求值"
+      (interactive)
+      (let ((calc-settings '(calc-language latex
+                                           calc-prefer-frac t
+                                           calc-angle-mode rad)))
+        (if (region-active-p)
+            (let* ((beg (region-beginning))
+                   (end (region-end))
+                   (string (buffer-substring-no-properties beg end)))
+              (delete-region beg end)
+              (insert (calc-eval (cons string calc-settings))))
+          (let ((l (thing-at-point 'line)))
+            (end-of-line 1)
+            (kill-line 0)
+            (insert (calc-eval (cons l calc-settings)))))))
+    (add-hook 'LaTeX-mode-hook
+              (lambda ()
+                (setq TeX-auto-untabify t
+                      TeX-engine 'xetex
+                      TeX-show-compilation t
+                      TeX-save-query nil)
+                (TeX-global-PDF-mode t)
+                (imenu-add-menubar-index)))))
 
-  (add-hook 'LaTeX-mode-hook
-            (lambda ()
-              (setq TeX-auto-untabify t
-                    TeX-engine 'xetex
-                    TeX-show-compilation t
-                    TeX-save-query nil)
-              (TeX-global-PDF-mode t)
-              (imenu-add-menubar-index))))
-
-(use-package preview
-  :after latex
-  :hook (LaTeX-mode . preview-larger-previews)
-  :config
-  (defun preview-larger-previews ()
-    (setq preview-scale-function
-          (lambda () (* 1.25 (funcall (preview-scale-from-face)))))))
+  (use-package preview
+    :after latex
+    :hook (LaTeX-mode . preview-larger-previews)
+    :config
+    (defun preview-larger-previews ()
+      (setq preview-scale-function
+            (lambda () (* 1.25 (funcall (preview-scale-from-face)))))))
 #+end_src
 
 *** CDLatex
@@ -2288,7 +2290,6 @@
                               (overlay-end yas--active-field-overlay)))
               (goto-char minp)
               t))))
-      
       (defun yas-next-field-or-cdlatex ()
         "正确处理 cdlatex 激活时跳转到下一个 Yas 字段"
         (interactive)
@@ -2347,6 +2348,35 @@
                      :preview-key (list :debounce 0.3 'any)))
 #+end_src
 
+*** Pdf-Tools
+#+begin_src emacs-lisp
+(use-package pdf-tools
+  :ensure t
+  :commands (pdf-view-mode pdf-tools-install)
+  :mode ("\\.[pP][dD][fF]\\'" . pdf-view-mode)
+  :config
+  (pdf-tools-install) ; On demand loading, leads to faster startup time
+  ;; 性能优化
+  (setq pdf-view-midnight-colors '("#ffffff" . "#000000"))
+  (setq-default pdf-view-display-size 'fit-page)
+  (setq pdf-view-resize-factor 1.1)
+  ;; 自动重载
+  (add-hook 'pdf-view-mode-hook 'auto-revert-mode))
+;; 常用辅助模块（它们都在 pdf-tools 包里，不需要 :ensure）
+(use-package pdf-isearch :ensure nil :after pdf-tools)
+(use-package pdf-links
+  :ensure nil :after pdf-tools
+  :bind (:map pdf-view-mode-map
+              ("f" . pdf-links-isearch-link)
+              ("F" . pdf-links-action-perform)))
+(use-package pdf-annot :ensure nil :after pdf-tools)
+;; 可选：避免 doc-view 抢占 PDF
+(use-package doc-view
+  :ensure nil
+  :init
+  ;; doc-view 遇到 PDF 会调用 doc-view-mode；我们用 pdf-view-mode 接管
+  (setq doc-view-mode-hook nil))
+#+end_src
 ** 编程语言
 *** Org-babel配置文件
 #+begin_src emacs-lisp
@@ -2483,7 +2513,6 @@
             (if (eq major-mode 'helpful-mode)
                 (helpful-update)
               (revert-buffer nil t)))))))
-
   (bind-key "r" #'remove-hook-at-point help-mode-map))
 
 (use-package macrostep
@@ -2713,7 +2742,7 @@
 (use-package auth-source
   :ensure nil
   :config
-  (setq auth-sources (list(locate-user-emacs-file "etc/authinfo.gpg")))  ;; 指定加密文件
+  (setq auth-sources (list(locate-user-emacs-file "authinfo.gpg")))  ;; 指定加密文件
   (setq auth-source-cache-expiry nil))  ;; 永不过期
 #+end_src
 *** GPTel

@@ -1,0 +1,19 @@
+# -*- mode: snippet -*-
+# name: Beautiful R Table
+# key: rtab
+# --
+\`\`\`{r ${1:table-name}}
+${2:data} %>%
+  ${3:head(10)} %>%
+  kable(
+    caption = "${4:表格标题}",
+    digits = ${5:2},
+    format.args = list(big.mark = ",")
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+    full_width = ${6:FALSE},
+    position = "${7:$$(yas-choose-value '("left" "center" "right"))}"
+  ) %>%
+  row_spec(0, bold = TRUE, color = "white", background = "#3498db")$0
+\`\`\`

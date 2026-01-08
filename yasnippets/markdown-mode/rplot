@@ -1,0 +1,21 @@
+# -*- mode: snippet -*-
+# name: ggplot2 Chart
+# key: rplot
+# --
+\`\`\`{r ${1:plot-name}, fig.cap="${2:图表标题}"}
+ggplot(${3:data}, aes(x = ${4:x}, y = ${5:y}${6:, color = ${7:group}})) +
+  geom_${8:$$(yas-choose-value '("point" "line" "bar" "boxplot" "violin" "histogram" "density"))}(${9:alpha = 0.7}) +
+  labs(
+    title = "${10:主标题}",
+    subtitle = "${11:副标题}",
+    x = "${12:X轴标签}",
+    y = "${13:Y轴标签}",
+    caption = "数据来源: ${14:来源}"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5),
+    legend.position = "${15:$$(yas-choose-value '("right" "left" "top" "bottom" "none"))}"
+  )$0
+\`\`\`

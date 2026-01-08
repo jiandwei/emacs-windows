@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: R Code Chunk
+# key: rr
+# --
+\`\`\`{r ${1:chunk-name}${2:, echo=${3:TRUE}${4:, fig.width=${5:10}, fig.height=${6:6}}}}
+$0
+\`\`\`

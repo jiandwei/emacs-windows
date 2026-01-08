@@ -1,0 +1,175 @@
+# -*- mode: snippet -*-
+# name: R Markdown Report Template
+# key: rmdreport
+# --
+---
+title: "${1:数据分析报告}"
+author: "${2:`user-full-name`}"
+date: "\`r Sys.Date()\`"
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 3
+    number_sections: true
+    theme: ${3:$$(yas-choose-value '("cosmo" "flatly" "journal" "lumen" "paper" "readable" "sandstone" "simplex" "spacelab" "united" "yeti"))}
+    highlight: ${4:$$(yas-choose-value '("tango" "pygments" "kate" "monochrome" "espresso" "zenburn" "haddock" "textmate"))}
+    code_folding: show
+    df_print: paged
+    fig_width: 10
+    fig_height: 6
+    fig_caption: true
+    self_contained: true
+---
+
+\`\`\`{r setup, include=FALSE}
+# 全局设置
+knitr::opts_chunk\$set(
+  echo = TRUE,           # 显示代码
+  warning = FALSE,       # 不显示警告
+  message = FALSE,       # 不显示消息
+  fig.align = "center",  # 图片居中
+  fig.width = 10,        # 图片宽度
+  fig.height = 6,        # 图片高度
+  dpi = 300,             # 图片分辨率
+  cache = FALSE          # 不缓存结果
+)
+
+# 加载必要的包
+library(tidyverse)    # 数据处理
+library(knitr)        # 文档生成
+library(kableExtra)   # 表格美化
+library(ggplot2)      # 可视化
+library(scales)       # 格式化
+library(DT)           # 交互表格
+
+# 设置 ggplot2 主题
+theme_set(theme_minimal(base_size = 14))
+\`\`\`
+
+# 摘要 {.tabset}
+
+${5:这里写报告摘要...}
+
+---
+
+# 数据导入与预处理
+
+## 数据导入
+
+\`\`\`{r data-import}
+# 读取数据
+${6:data <- read_csv("path/to/data.csv")}
+\`\`\`
+
+## 数据概览
+
+\`\`\`{r data-overview}
+# 数据维度
+dim(data)
+
+# 数据结构
+glimpse(data)
+
+# 数据摘要
+summary(data)
+\`\`\`
+
+## 数据质量检查
+
+\`\`\`{r data-quality}
+# 缺失值检查
+data %>%
+  summarise(across(everything(), ~sum(is.na(.)))) %>%
+  pivot_longer(everything(), names_to = "变量", values_to = "缺失值数量") %>%
+  filter(缺失值数量 > 0) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+\`\`\`
+
+---
+
+# 探索性数据分析 {.tabset .tabset-pills}
+
+## 描述性统计
+
+\`\`\`{r descriptive-stats}
+# 数值变量统计
+data %>%
+  select(where(is.numeric)) %>%
+  psych::describe() %>%
+  kable(digits = 2) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+\`\`\`
+
+## 数据可视化
+
+\`\`\`{r visualization}
+# 示例：分布图
+ggplot(data, aes(x = ${7:variable})) +
+  geom_histogram(bins = 30, fill = "steelblue", alpha = 0.7) +
+  labs(
+    title = "${8:变量分布图}",
+    x = "${9:X轴标签}",
+    y = "频数"
+  ) +
+  theme_minimal()
+\`\`\`
+
+## 相关性分析
+
+\`\`\`{r correlation}
+# 相关系数矩阵
+data %>%
+  select(where(is.numeric)) %>%
+  cor(use = "complete.obs") %>%
+  kable(digits = 3) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+\`\`\`
+
+---
+
+# 建模与分析
+
+\`\`\`{r modeling}
+# 建立模型
+${10:model <- lm(y ~ x, data = data)}
+
+# 模型摘要
+summary(model)
+\`\`\`
+
+---
+
+# 结论与建议
+
+${11:这里写结论...}
+
+---
+
+# 附录 {.tabset}
+
+## 会话信息
+
+\`\`\`{r session-info}
+sessionInfo()
+\`\`\`
+
+## 完整数据表
+
+\`\`\`{r full-data}
+DT::datatable(
+  data,
+  options = list(
+    pageLength = 10,
+    scrollX = TRUE,
+    dom = 'Bfrtip',
+    buttons = c('copy', 'csv', 'excel')
+  ),
+  extensions = 'Buttons'
+)
+\`\`\`
+
+$0

@@ -979,7 +979,7 @@
   (use-package yasnippet
     :ensure t
     :diminish
-    :hook (((LaTeX-mode python-ts-mode) . yas-minor-mode)
+    :hook (((LaTeX-mode python-ts-mode ess-r-mode poly-markdown+r-mode) . yas-minor-mode)
            (post-self-insert . my/yas-try-expanding-auto-snippets))
     :config
     (yas-reload-all)
@@ -1003,15 +1003,34 @@
 (use-package eglot
   :ensure nil  ;; Emacs 29+ 内置
   :defer t
-  :hook (python-ts-mode . eglot-ensure)
+  :hook ((python-ts-mode . eglot-ensure)
+         (ess-r-mode . eglot-ensure)
+         (inferior-ess-r-mode . eglot-ensure))
   :init
-  (setq eglot-events-buffer-config 0          ;; 禁用事件日志（关键）
+  (setq eglot-extend-to-xref t
+        eglot-events-buffer-config 0          ;; 禁用事件日志（关键）
         eglot-sync-connect t              ;; 异步连接
         eglot-autoshutdown t                ;; 自动关闭无用服务器
         eglot-send-changes-idle-time 0.5)   ;; 延迟发送更改
   :config
   (add-to-list 'eglot-server-programs
                '(python-ts-mode . ("ty" "server")))
+  ;; 配置 R 语言服务器
+  (add-to-list 'eglot-server-programs
+               '(ess-r-mode . ("R" "--slave" "-e"
+                               "languageserver::run()")))
+  ;; 语言服务器配置选项
+  (setq-default eglot-workspace-configuration
+                '(:r
+                  (:lsp
+                   (:diagnostics t              ;; 启用诊断
+                    :debug nil                  ;; 禁用调试日志
+                    :logLevel "error"           ;; 只记录错误
+                    :rich_documentation t       ;; 启用富文档
+                    :snippet_support t          ;; 启用代码片段
+                    :max_completions 200        ;; 补全项数量
+                    :lint_cache t               ;; 启用 lint 缓存
+                    :link_file_size_limit 16384)))) ;; 文件大小限制
   ;; (add-to-list 'eglot-server-programs
   ;;             '((python-mode python-ts-mode)
   ;;             "basedpyright-langserver" "--stdio"))
@@ -1024,19 +1043,20 @@
 (use-package flymake
   :ensure nil  ;; 内置
   :defer t
-  :hook (python-ts-mode . flymake-mode)
-  :custom
-  (flymake-no-changes-timeout 0.5)  ;; 延迟检查
-  (flymake-start-on-save-buffer t)
-  :bind (:map flymake-mode-map
-         ("C-c ! n" . flymake-goto-next-error)
-         ("C-c ! p" . flymake-goto-prev-error)
-         ("C-c ! l" . flymake-show-buffer-diagnostics)))
+  :hook ((python-ts-mode ess-r-mode) . flymake-mode)
+         :custom
+         (flymake-no-changes-timeout 0.5)  ;; 延迟检查
+         (flymake-start-on-save-buffer t)
+         :bind (:map flymake-mode-map
+                ("C-c ! n" . flymake-goto-next-error)
+                ("C-c ! p" . flymake-goto-prev-error)
+                ("C-c ! l" . flymake-show-buffer-diagnostics)))
 
-(use-package flymake-ruff
-  :ensure t
-  :defer t
-  :hook (python-ts-mode . flymake-ruff-load))
+  (use-package flymake-ruff
+    :ensure t
+    :defer t
+    :hook (python-ts-mode . flymake-ruff-load))
+
 #+end_src
 ** Format-all
 #+begin_src emacs-lisp
@@ -2583,8 +2603,86 @@
   :defer t
   :hook (python-ts-mode . flymake-ruff-load))
 #+end_src
-*** 编程模式通用设置
+*** R 
+#+BEGIN_SRC emacs-lisp
+;;; ESS - R 语言支持
+(use-package ess
+  :ensure t
+  :defer t
+  :mode (("\\.R\\'" . R-mode)
+         ("\\.r\\'" . R-mode)
+         ("\\.Rmd\\'" . poly-markdown+r-mode))  ;; 如果使用 R Markdown
+  :hook
+  ((ess-r-mode . eglot-ensure)          ;; 自动启动 eglot
+   (inferior-ess-r-mode . (lambda ()     ;; R 控制台配置
+                            (setq-local comint-scroll-to-bottom-on-input t)
+                            (setq-local comint-scroll-to-bottom-on-output t)
+                            (setq-local comint-move-point-for-output t))))
+  :init
+  ;; 性能优化
+  (setq ess-use-flymake nil              ;; 禁用 ESS 自带的 flymake
+        ess-use-eldoc 'script-only       ;; 只在脚本中使用 eldoc
+        ess-eldoc-show-on-symbol nil     ;; 禁用符号上的 eldoc
+        ess-startup-directory 'default-directory
+        ess-ask-for-ess-directory nil)
 
+  :custom
+  ;; R 进程配置
+  (ess-indent-offset 2)
+  (ess-style 'RStudio)                   ;; 使用 RStudio 风格缩进
+  (ess-offset-continued 2)
+  (ess-expression-offset 2)
+  (ess-nuke-trailing-whitespace-p t)     ;; 删除行尾空格
+  (ess-default-style 'RStudio)
+
+  ;; R 交互配置
+  (inferior-R-args "--no-save --no-restore")
+  (ess-R-font-lock-keywords
+   '((ess-R-fl-keyword:keywords . t)
+     (ess-R-fl-keyword:constants . t)
+     (ess-R-fl-keyword:modifiers . t)
+     (ess-R-fl-keyword:fun-defs . t)
+     (ess-R-fl-keyword:assign-ops . t)
+     (ess-R-fl-keyword:%op% . t)
+     (ess-fl-keyword:fun-calls . t)
+     (ess-fl-keyword:numbers . t)
+     (ess-fl-keyword:operators . t)
+     (ess-fl-keyword:delimiters . t)
+     (ess-fl-keyword:= . t)
+     (ess-R-fl-keyword:F&T . t))))
+
+;;; Poly-mode - R Markdown 支持
+(use-package polymode
+  :ensure t
+  :defer t)
+
+(use-package poly-markdown
+  :ensure t
+  :defer t)
+
+(use-package poly-R
+  :ensure t
+  :defer t
+  :mode ("\\.Rmd\\'" . poly-markdown+r-mode)
+  :config
+  ;; 在 R Markdown 中启用 eglot
+  (add-hook 'poly-markdown+r-mode-hook
+            (lambda ()
+              (when (derived-mode-p 'ess-r-mode)
+                (eglot-ensure)))))
+;; 定期清理 R 进程
+(defun my/ess-cleanup-old-processes ()
+  "Kill idle R processes older than 1 hour"
+  (dolist (proc (process-list))
+    (when (and (string-match-p "^R:" (process-name proc))
+               (> (float-time (time-since (process-get proc 'last-activity)))
+                  3600))
+      (delete-process proc))))
+
+(run-with-idle-timer 1800 t #'my/ess-cleanup-old-processes)
+
+#+end_src
+*** 编程模式通用设置
 #+begin_src emacs-lisp
   (use-package rainbow-delimiters
     :ensure t

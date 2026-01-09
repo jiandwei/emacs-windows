@@ -1,61 +1,42 @@
 #+TITLE: Emacs config (single source of truth)
 #+PROPERTY: header-args:emacs-lisp :lexical t
 #+OPTIONS: toc:nil
-
 * early-init.el
 :PROPERTIES:
 :header-args:emacs-lisp: :tangle early-init.el
 :END:
-
 #+begin_src emacs-lisp
 ;; -*- lexical-binding: t; -*-
 ;;; early-init.el - 激进优化版
-
-;; ========== (1) GC 临时加速（保持原样）==========
 (defvar my/startup-gc-cons-threshold gc-cons-threshold)
 (defvar my/startup-gc-cons-percentage gc-cons-percentage)
-
 (setq gc-cons-threshold most-positive-fixnum
       gc-cons-percentage 0.6)
-
 (add-hook 'emacs-startup-hook
           (lambda ()
             (setq gc-cons-threshold (* 64 1024 1024)  ;; 64MB（更激进）
                   gc-cons-percentage 0.1)))
-
-;; ========== (2) file-name-handler-alist 临时加速（保持原样）==========
 (defvar my/startup-file-name-handler-alist file-name-handler-alist)
 (setq file-name-handler-alist nil)
 
 (add-hook 'emacs-startup-hook
           (lambda ()
             (setq file-name-handler-alist my/startup-file-name-handler-alist)))
-
-;; ========== (3) **关键优化: 启用 package-quickstart** ==========
-;; 生成单一的 autoload 文件，避免每次扫描 elpa/
 (setq package-quickstart t)
 ;; 首次使用需运行: M-x package-quickstart-refresh
-
-;; ========== (4) Native compilation 优化 ==========
 (setq load-prefer-newer t
+      ;;package-enable-at-startup nil
       native-comp-jit-compilation t
       native-comp-async-report-warnings-errors nil
       native-comp-deferred-compilation t)  ;; 延迟编译
-
-;; ========== (5) 编码（保持原样）==========
 (prefer-coding-system 'utf-8)
 (setq-default buffer-file-coding-system 'utf-8)
-
-;; ========== (6) Frame/UI（保持原样）==========
 (setq frame-inhibit-implied-resize t)
 (push '(menu-bar-lines . 0) default-frame-alist)
 (push '(tool-bar-lines . 0) default-frame-alist)
 (push '(vertical-scroll-bars . nil) default-frame-alist)
-
-;; ========== (7) 加载路径优化 ==========
 (setq load-suffixes '(".elc" ".el"))  ;; 优先 .elc
 (setq load-file-rep-suffixes '(""))
-
 (provide 'early-init)
 ;;; early-init.el ends here
 #+end_src
@@ -66,17 +47,12 @@
 :END:
 #+begin_src emacs-lisp
 ;; -*- lexical-binding: t; -*-
-;; ========== 关键修复 1: 立即初始化包系统（配合 quickstart）==========
 (require 'package)
 (setq package-archives '(("gnu"    . "https://mirrors.ustc.edu.cn/elpa/gnu/")
                          ("melpa"  . "https://mirrors.ustc.edu.cn/elpa/melpa/")
                          ("nongnu" . "https://mirrors.ustc.edu.cn/elpa/nongnu/")))
-
-;; ========== 关键修复 2: 禁用所有自动刷新机制 ==========
 (setq package-native-compile t              ;; 使用原生编译
-      package-install-upgrade-built-in nil) ;; 不升级内置包
-
-;; ========== 关键修复 3: use-package 配置（完全禁用自动安装）==========
+      package-install-upgrade-built-in t) ;; 升级内置包
 (eval-and-compile
   (unless (package-installed-p 'use-package)
     (package-refresh-contents)  ;; 仅首次运行时刷新
@@ -87,60 +63,48 @@
         use-package-always-defer t          ;; 关键：默认延迟加载
         use-package-expand-minimally t      ;; 最小化展开
         use-package-compute-statistics nil)) ;; 关闭统计
-
-
-
 #+END_SRC
-** 基础配置
+** 内置行为与基础设置
 *** 核心设置
 #+begin_src emacs-lisp
   ;; 命令行选项
   (setq command-line-x-option-alist nil)
-
   ;; 进程 IO 优化
   (setq read-process-output-max #x10000)  ; 64kb
-
   ;; 禁用 ffap 域名检测
   (setq ffap-machine-p-known 'reject)
-
   ;; 个人信息
   (setq user-full-name "Wei"
         user-mail-address "Jiawei0655@gmail.com")
-
   ;; UTF-8 编码
   (when (fboundp 'set-charset-priority)
     (set-charset-priority 'unicode))
   (prefer-coding-system 'utf-8)
   (setq locale-coding-system 'utf-8)
   (setq system-time-locale "C")
-
-  ;; GC 管理
   (use-package gcmh
     :ensure t
+    :demand t
     :diminish
     :hook (emacs-startup . gcmh-mode)
     :custom
     (gcmh-idle-delay 'auto)
     (gcmh-auto-idle-delay-factor 10)
     (gcmh-high-cons-threshold #x12800000))
-
   ;; Server 模式
- 
-(use-package server
-  :ensure nil
-  :hook (after-init . server-mode))
-
+  (use-package server
+    :ensure nil
+    :hook (after-init . server-mode))
   ;; 保存位置
   (use-package saveplace
     :defer t
-     :hook (after-init . save-place-mode)
+    :hook (after-init . save-place-mode)
     :config (setq save-place-file (locate-user-emacs-file "etc/places")))
-
   ;; 最近文件
   (use-package recentf
     :defer 1
     :bind (("C-x C-r" . recentf-open-files))
-     :hook (after-init . recentf-mode)
+    :hook (after-init . recentf-mode)
     :custom
     (recentf-max-saved-items 300)
     (recentf-auto-cleanup 'never)
@@ -154,7 +118,6 @@
        "/TAGS\\'"
        "COMMIT_EDITMSG\\'"))
     :config (setq recentf-save-file (locate-user-emacs-file "etc/recentf")))
-
   ;; 历史记录
   (use-package savehist
     :hook (after-init . savehist-mode)
@@ -169,8 +132,486 @@
                 savehist-autosave-interval 300))
 #+end_src
 
-*** Simple 模式增强
+*** 使用地址
 
+#+BEGIN_SRC emacs-lisp
+(require 'cl-lib)
+(defun my/normalize-path (path)
+  "把 Windows 路径转换成 Emacs 惯用的斜杠形式，并确保末尾带斜杠。"
+  (file-name-as-directory
+   (replace-regexp-in-string "\\\\" "/" (convert-standard-filename path))))
+;; --- 根路径定义 ---
+(defconst my/org-root
+  (my/normalize-path "C:/Users/wei/Documents/org/")
+  "Org 根目录。")
+(defconst my/org-agenda-root
+  (my/normalize-path (expand-file-name "agenda" my/org-root))
+  "Org Agenda 根目录。")
+(defconst my/denote-root
+  (my/normalize-path (expand-file-name "notes" my/org-root))
+  "Denote 笔记根目录。")
+;; --- Agenda 子目录 ---
+(defconst my/org-projects-dir (expand-file-name "projects" my/org-agenda-root))
+(defconst my/org-work-dir     (expand-file-name "work"     my/org-agenda-root))
+(defconst my/org-personal-dir (expand-file-name "personal" my/org-agenda-root))
+;; --- 文献相关目录 ---
+(defconst my/bibliography-directory
+  (expand-file-name "bibliography" my/org-root)
+  "文献库目录。")
+(defconst my/bibliography-files
+  (list (expand-file-name "我的文库.bib" my/bibliography-directory))
+  "主要 BibTeX 文件列表。")
+(defconst my/bibliography-notes-directory
+  (expand-file-name "literature-notes" my/denote-root)
+  "文献笔记目录（配合 Denote）。")
+;; --- GPTel 缓存目录 ---
+(defconst my/gptel-cache-dir
+  (expand-file-name "etc/gptel" user-emacs-directory)
+  "GPTel 缓存目录。")
+;; --- 统一的目录清单（已去重） ---
+(defconst my/managed-directories
+  (delete-dups
+   (list my/org-root
+         my/org-agenda-root
+         my/denote-root
+         my/org-projects-dir
+         my/org-work-dir
+         my/org-personal-dir
+         my/bibliography-directory
+         my/bibliography-notes-directory
+         my/gptel-cache-dir))
+  "启动时需要确保存在的目录列表。")
+(defun my/ensure-directories ()
+  "确保 `my/managed-directories' 中的目录存在。
+缺失的目录会被一次性创建，之后就不再重复检查。"
+  (let ((missing (cl-remove-if #'file-directory-p my/managed-directories)))
+    (when missing
+      (dolist (dir missing)
+        (make-directory dir t)))
+    ;; 不论是否创建过目录，一次执行之后就移除自己，避免重复检查。
+    (remove-hook 'after-init-hook #'my/ensure-directories)))
+(add-hook 'after-init-hook #'my/ensure-directories)
+#+end_src
+** UI 与显示
+*** 主题配置
+#+begin_src emacs-lisp
+(use-package panel
+  :vc (panel :url "https://github.com/jiandwei/emacs-panel.git"
+             :branch "main")
+  :hook (after-init . panel-create-hook)
+  :config
+  ;; ========== 基础显示配置 ==========
+  (setq panel-title "Happy hacking, Emacs ♥  you"
+        panel-show-file-path nil
+        panel-min-left-padding 10
+        panel-path-max-length 20
+        ;; 地理位置 - 大连
+        panel-latitude 38.9140
+        panel-longitude 121.6147
+        ;; 图片配置
+        panel-image-file (locate-user-emacs-file "etc/bitmap.png")
+        panel-image-width 400
+        panel-image-height 169))
+(use-package circadian
+  :ensure t
+  :defer t
+  :init
+  (setq circadian-themes
+        '((:sunrise . modus-operandi-tinted)
+          (:sunset  . modus-vivendi))
+        calendar-latitude  38.9140
+        calendar-longitude 121.6147
+        calendar-location-name "Dalian")
+  :hook (after-init . circadian-setup))
+
+;; ========== 平滑滚动 ==========
+(use-package pixel-scroll
+  :ensure nil
+  :hook (after-init . pixel-scroll-precision-mode)
+  :custom
+  ;; 像素级调整窗口
+  (window-resize-pixelwise t)
+  (frame-resize-pixelwise t)
+  (pixel-scroll-precision-interpolate-page t)
+  (pixel-scroll-precision-large-scroll-height 40.0)
+  (pixel-scroll-precision-interpolation-factor 30))
+#+end_src
+
+*** 字体配置
+
+#+begin_src emacs-lisp
+  ;;; 字体配置 - 优化版（缓存 + 延迟加载）
+(defun font-available-p (font-name)
+  "检查字体是否可用（缓存友好）"
+  (find-font (font-spec :name font-name)))
+;; 字体缓存（避免重复探测）
+(defvar my/font-cache nil
+  "缓存探测到的字体，避免重复查询系统字体数据库")
+(defun my/detect-fonts-once ()
+  ;;   "一次性探测所有需要的字体并缓存结果"
+  (unless my/font-cache
+    (setq my/font-cache
+          (list
+           :han (cl-loop for f in '("IosevkaTermSS05 Nerd Font Mono + LXGW WenKai Mono Lite Regular" "LXGW WenKai Mono" "Sarasa Mono SC")
+                         when (font-available-p f) return f)
+           :symbol (cl-loop for f in '("Symbols Nerd Font Mono")
+                            when (font-available-p f) return f)
+           :emoji (cl-loop for f in '("Noto Color Emoji" "Apple Color Emoji" "Segoe UI Emoji")
+                           when (font-available-p f) return f)))))
+(defun my/setup-fonts-beautiful ()
+  "设置字体（美化版）"
+  (when (display-graphic-p)
+    ;; 英文字体（使用更现代的字体）
+    (set-face-attribute 'default nil
+                        :font "IosevkaTermSS05 Nerd Font Mono + LXGW WenKai Mono Lite Regular"
+                        :height 130
+                        :weight 'normal)
+    ;; 变量字体（用于 Org 正文）
+    (set-face-attribute 'variable-pitch nil
+                        :font "IosevkaTermSS05 Nerd Font Mono + LXGW WenKai Mono Lite Regular"
+                        :height 1.0)
+    ;; 等宽字体（用于代码块）
+    (set-face-attribute 'fixed-pitch nil
+                        :font "Cascadia Mono"
+                        ;;:font "JetBrains Mono"
+                        :height 1.0)
+    ;; 中文字体
+    (my/detect-fonts-once)
+    (when-let* ((han (plist-get my/font-cache :han)))
+      (setq face-font-rescale-alist `((,han . 1.3)))
+      (set-fontset-font t 'han (font-spec :family han)))
+    ;; 符号字体
+    (when-let* ((sym (plist-get my/font-cache :symbol)))
+      (set-fontset-font t 'symbol (font-spec :family sym) nil 'prepend))
+    ;; Emoji 字体
+    (when-let* ((emo (plist-get my/font-cache :emoji)))
+      (set-fontset-font t 'emoji (font-spec :family emo) nil 'prepend))))
+(add-hook 'after-init-hook #'my/setup-fonts-beautiful)
+;; 新建frame时也应用（daemon 模式需要）
+(add-hook 'after-make-frame-functions #'my/setup-fonts-beautiful)
+;; Circadian 切换主题后重新应用
+(with-eval-after-load 'circadian
+  (add-hook 'circadian-after-load-theme-hook
+            (lambda (_theme) (my/setup-fonts-beautiful))))
+#+end_src
+
+*** 图标与 Modeline
+#+begin_src emacs-lisp
+;;; Modeline - Doom Modeline（推荐）
+(use-package doom-modeline
+  :ensure t
+  :hook (after-init . doom-modeline-mode)
+  :custom
+  ;; ========== 图标设置 ==========
+  (doom-modeline-icon t)
+  (doom-modeline-major-mode-icon t)
+  (doom-modeline-major-mode-color-icon t)
+  ;; ========== 高度和样式 ==========
+  (doom-modeline-height 28)
+  (doom-modeline-bar-width 4)
+  (doom-modeline-window-width-limit 85)  ;; 窗口宽度限制
+  ;; ========== 显示内容优化 ==========
+  (doom-modeline-buffer-file-name-style 'relative-from-project)
+  (doom-modeline-buffer-encoding nil)  ;; 隐藏编码
+  (doom-modeline-indent-info nil)      ;; 隐藏缩进信息
+  (doom-modeline-minor-modes nil)      ;; 隐藏次要模式（推荐）
+  ;; ========== 时间与状态 ==========
+  (doom-modeline-time-icon t)
+  (doom-modeline-time t)             ;; 是否显示时间（可选）
+  (doom-modeline-modal t)
+  (doom-modeline-modal-icon t)
+  (doom-modeline-modal-modern-icon t)
+  ;; ========== LSP 支持 ==========
+  (doom-modeline-lsp t)
+  (doom-modeline-lsp-icon t)
+  ;; ========== Git 信息 ==========
+  (doom-modeline-vcs-max-length 20)
+  (doom-modeline-check-simple-format t)
+  (doom-modeline-persp-name t)         ;; 显示 workspace 名称
+  (doom-modeline-persp-icon t)
+  ;; ========== 性能优化 ==========
+  (doom-modeline-env-version nil)      ;; 不显示语言版本
+  (doom-modeline-github nil)           ;; 不查询 GitHub
+  (doom-modeline-mu4e nil)
+  (doom-modeline-irc nil)
+  (doom-modeline-gnus nil)
+  ;; ========== Org 模式 ==========
+  (doom-modeline-enable-word-count t)
+  (doom-modeline-continuous-word-count-modes
+   '(markdown-mode gfm-mode org-mode text-mode))
+  ;; ========== 项目检测 ==========
+  (doom-modeline-project-detection 'auto)
+  ;; ========== Buffer 状态 ==========
+  (doom-modeline-buffer-state-icon t)
+  (doom-modeline-buffer-modification-icon t)
+  :config
+  ;; ========== 自定义 Face ==========
+  (custom-set-faces
+   ;; 高亮元素
+   '(doom-modeline-buffer-modified ((t (:foreground "#bf616a" :weight bold))))
+   '(doom-modeline-buffer-major-mode ((t (:foreground "#88c0d0" :weight bold))))
+   '(doom-modeline-buffer-path ((t (:foreground "#81a1c1" :weight normal))))
+   ;; Git 信息
+   '(doom-modeline-vcs-branch ((t (:foreground "#a3be8c"))))
+   '(doom-modeline-vcs-modified ((t (:foreground "#ebcb8b"))))
+   ;; LSP 状态
+   '(doom-modeline-lsp-success ((t (:foreground "#a3be8c" :weight bold))))
+   '(doom-modeline-lsp-warning ((t (:foreground "#ebcb8b" :weight bold))))
+   '(doom-modeline-lsp-error ((t (:foreground "#bf616a" :weight bold))))
+   ;; Bar
+   '(doom-modeline-bar ((t (:background "#88c0d0"))))
+   '(doom-modeline-bar-inactive ((t (:background "#4c566a")))))
+  ;; ========== 时间格式（如果启用）==========
+  (when doom-modeline-time
+    (setq display-time-format "%H:%M"
+          display-time-default-load-average nil
+          display-time-interval 60)))
+(with-eval-after-load 'circadian
+  (defun my/doom-modeline-adapt-theme ()
+    "根据主题自动调整 modeline 颜色"
+    (let ((bg (face-background 'default))
+          (fg (face-foreground 'default)))
+      (custom-set-faces
+       `(mode-line ((t (:background ,bg :foreground ,fg
+                        :box (:line-width 3 :color ,bg)))))
+       `(mode-line-inactive ((t (:background ,(doom-blend bg fg 0.1)
+                                 :foreground ,(doom-blend fg bg 0.4))))))))
+  (add-hook 'circadian-after-load-theme-hook #'my/doom-modeline-adapt-theme))
+  (use-package nerd-icons
+    :ensure t
+    :defer t)  ;; 只在需要时加载（如 dired、ibuffer）
+#+end_src
+*** 高亮与反馈
+**** 当前行高亮
+#+begin_src emacs-lisp
+  (use-package hl-line
+    :ensure nil
+    :hook ((after-init . global-hl-line-mode)
+           ((dashboard-mode eshell-mode shell-mode term-mode vterm-mode) .
+            (lambda () (setq-local global-hl-line-mode nil))))
+    :custom-face
+    ;; 根据主题调整高亮行颜色
+    (hl-line ((t (:extend t :background "#2d3436")))))
+#+end_src
+**** 括号匹配
+#+begin_src emacs-lisp
+  (use-package paren
+    :defer t
+    :after (:any text prog)
+    :hook ((text-mode prog-mode) . show-paren-mode)
+    :custom
+    (show-paren-when-point-inside-paren t)
+    (show-paren-when-point-in-periphery t)
+    :config
+    (setq show-paren-context-when-offscreen
+          (if (childframe-workable-p) 'child-frame 'overlay))
+    (with-no-warnings
+      (defun display-line-overlay (pos str &optional face)
+        "Display line at POS as STR with FACE."
+        (let ((ol (save-excursion
+                    (goto-char pos)
+                    (make-overlay (line-beginning-position)
+                                  (line-end-position)))))
+          (overlay-put ol 'display str)
+          (overlay-put ol 'face (or face '(:inherit highlight)))
+          ol))
+
+      (defvar-local show-paren--off-screen-overlay nil)
+      (defun show-paren-off-screen (&rest _args)
+        "Display matching line for off-screen paren."
+        (when (overlayp show-paren--off-screen-overlay)
+          (delete-overlay show-paren--off-screen-overlay))
+        (when (and (overlay-buffer show-paren--overlay)
+                   (not (or cursor-in-echo-area
+                            executing-kbd-macro
+                            noninteractive
+                            (minibufferp)
+                            this-command))
+                   (and (not (bobp))
+                        (memq (char-syntax (char-before)) '(?\) ?\$)))
+                   (= 1 (logand 1 (- (point)
+                                     (save-excursion
+                                       (forward-char -1)
+                                       (skip-syntax-backward "/\\")
+                                       (point))))))
+          (cl-letf (((symbol-function #'minibuffer-message)
+                     (lambda (msg &rest args)
+                       (let ((msg (apply #'format-message msg args)))
+                         (setq show-paren--off-screen-overlay
+                               (display-line-overlay
+                                (window-start) msg))))))
+            (blink-matching-open))))
+      (advice-add #'show-paren-function :after #'show-paren-off-screen)))
+#+end_src
+**** 脉冲高亮
+#+begin_src emacs-lisp
+  (use-package pulse
+    :ensure nil
+    :custom-face
+    (pulse-highlight-start-face ((t (:inherit region :background unspecified))))
+    (pulse-highlight-face ((t (:inherit region :background unspecified :extend t))))
+    :hook (((dumb-jump-after-jump imenu-after-jump) . my/recenter-and-pulse)
+           ((bookmark-after-jump magit-diff-visit-file next-error) . my/recenter-and-pulse-line))
+    :init
+    (with-no-warnings
+      (defun my/pulse-momentary-line (&rest _)
+        "Pulse the current line."
+        (pulse-momentary-highlight-one-line (point)))
+
+      (defun my/pulse-momentary (&rest _)
+        "Pulse the region or current line."
+        (if (fboundp 'xref-pulse-momentarily)
+            (xref-pulse-momentarily)
+          (my/pulse-momentary-line)))
+
+      (defun my/recenter-and-pulse (&rest _)
+        "Recenter and pulse the region or current line."
+        (recenter)
+        (my/pulse-momentary))
+
+      (defun my/recenter-and-pulse-line (&rest _)
+        "Recenter and pulse the current line."
+        (recenter)
+        (my/pulse-momentary-line))
+
+      (dolist (cmd '(recenter-top-bottom
+                     other-window switch-to-buffer
+                     aw-select toggle-window-split
+                     windmove-do-window-select
+                     pager-page-down pager-page-up
+                     treemacs-select-window))
+        (advice-add cmd :after #'my/pulse-momentary-line))
+
+      (dolist (cmd '(pop-to-mark-command
+                     pop-global-mark
+                     goto-last-change))
+        (advice-add cmd :after #'my/recenter-and-pulse))))
+#+end_src
+
+** 编辑器设置
+#+begin_src emacs-lisp
+(use-package emacs
+  :custom
+  ;; Frame 设置
+  (frame-inhibit-implied-resize t)
+  (frame-resize-pixelwise t)
+  ;; UI 元素
+  (menu-bar-mode nil)
+  (scroll-bar-mode nil)
+  (tool-bar-mode nil)
+  (inhibit-startup-screen t)
+  (use-dialog-box nil)
+  ;; 窗口分隔线
+  (window-divider-default-right-width 1)
+  (window-divider-default-bottom-width 1)
+  (window-divider-default-places t)
+  ;; 编辑行为
+  (delete-selection-mode t)
+  (electric-indent-mode nil)
+  (electric-pair-mode t)
+  (global-auto-revert-mode t)
+  ;; 光标和滚动
+  (blink-cursor-mode nil)
+  (mouse-wheel-progressive-speed nil)
+  (scroll-conservatively 101)
+  (scroll-step 2)
+  (scroll-margin 2)
+  ;; 制表符
+  (tab-width 4)
+  (indent-tabs-mode nil)
+  (tab-always-indent 'complete)
+  ;; 备份和锁文件
+  (make-backup-files nil)
+  (create-lockfiles nil)
+  ;; 补全
+  (completion-cycle-threshold 3)
+  ;; 初始模式
+  (initial-major-mode 'lisp-interaction-mode)
+  :init
+  ;; 运行时目录（避免重复创建）
+  (let ((dirs '("etc/" "etc/server/" "etc/auto-save-list/"
+                "etc/org-persist/" "etc/transient/" "etc/persistent-scratch/")))
+    (dolist (dir dirs)
+      (let ((full-dir (locate-user-emacs-file dir)))
+        (unless (file-exists-p full-dir)
+          (make-directory full-dir t)))))
+  ;; 路径设置
+  (setq server-auth-dir (locate-user-emacs-file "etc/server/")
+        auto-save-list-file-prefix (locate-user-emacs-file "etc/auto-save-list/.saves-")
+        custom-file (locate-user-emacs-file "etc/custom-vars.el")
+        default-directory "C:/Users/wei/Documents/")
+  ;; 加载 custom-file
+  (load custom-file 'noerror 'nomessage)
+  ;; 警告和编译
+  (setq warning-minimum-level :emergency
+        native-comp-async-report-warnings-errors nil)
+  ;; Frame 标题
+  (setq frame-title-format "%b"
+        icon-title-format "%b")
+  ;; 性能优化
+  (setq-default bidi-paragraph-direction 'left-to-right)
+  (setq bidi-inhibit-bpa t
+        load-prefer-newer t
+        inhibit-compacting-font-caches t
+        display-raw-bytes-as-hex t
+        redisplay-skip-fontification-on-input t)
+  ;; 滚动优化
+  (setq hscroll-step 2
+        hscroll-margin 2
+        scroll-preserve-screen-position 'always
+        auto-hscroll-mode 'current-line
+        auto-window-vscroll nil)
+  ;; 剪贴板
+  (setq select-enable-primary t
+        select-enable-clipboard t
+        mouse-yank-at-point t)
+  ;; 其他
+  (setq ring-bell-function 'ignore
+        fill-column 80)
+  ;; 补全谓词
+  (when (boundp 'read-extended-command-predicate)
+    (setq read-extended-command-predicate
+          #'command-completion-default-include-p))
+  ;; 启用被禁用的命令
+  (dolist (cmd '(narrow-to-defun narrow-to-page narrow-to-region
+                                 dired-find-alternate-file list-timers list-threads))
+    (put cmd 'disabled nil))
+  ;; 字体大小
+  (set-face-attribute 'default nil :height 110)
+  ;; _ 作为单词组成部分
+  (add-hook 'after-change-major-mode-hook
+            (lambda ()
+              (modify-syntax-entry ?_ "w")))
+  :config
+  ;; 窗口分隔线
+  (window-divider-mode 1)
+  (let ((bg (face-attribute 'default :background)))
+    (set-face-attribute 'window-divider nil :foreground bg)
+    (set-face-attribute 'window-divider-first-pixel nil :foreground bg)
+    (set-face-attribute 'window-divider-last-pixel nil :foreground bg))
+  ;; help-fns 延迟加载
+  (with-eval-after-load 'help-fns
+    (put 'help-fns-edit-variable 'disabled nil))
+  :bind
+  ([escape] . keyboard-escape-quit))
+(use-package winner
+  :ensure nil
+  :commands (winner-undo winner-redo)
+  :hook (after-init . winner-mode)
+  :custom (winner-boring-buffers '("*Completions*"
+                                   "*Compile-Log*"
+                                   "*inferior-lisp*"
+                                   "*Fuzzy Completions*"
+                                   "*Apropos*"
+                                   "*Help*"
+                                   "*cvs*"
+                                   "*Buffer List*"
+                                   "*Ibuffer*"
+                                   "*esh command on file*")))
+#+end_src
+
+** 编辑体验增强
+*** Simple 模式增强
 #+begin_src emacs-lisp
   (use-package simple
     :ensure nil
@@ -183,13 +624,11 @@
           line-move-visual nil
           track-eol t
           set-mark-command-repeat-pop t)
-
     (setq-default show-trailing-whitespace nil)
     (defun enable-trailing-whitespace ()
       "Show trailing spaces and delete on saving."
       (setq show-trailing-whitespace t)
       (add-hook 'before-save-hook #'delete-trailing-whitespace nil t))
-
     ;; 美化进程列表
     (with-no-warnings
       (defun my/list-processes--prettify ()
@@ -213,7 +652,6 @@
               (push (list p (vector name pid status buf-label tty thread cmd))
                     tabulated-list-entries)))))
       (advice-add #'list-processes--refresh :after #'my/list-processes--prettify)))
-
   ;; 简化确认
   (setq use-short-answers t)
   (setq y-or-n-p-use-read-key t
@@ -231,404 +669,13 @@
         word-wrap-by-category t)
 #+end_src
 
-** UI 界面
-*** 主题配置
-#+begin_src emacs-lisp
-(use-package panel
-  :vc (panel :url "https://github.com/jiandwei/emacs-panel.git"
-             :branch "main")
-  :hook (after-init . panel-create-hook)
-
-  :config
-  ;; ========== 基础显示配置 ==========
-  (setq panel-title "Happy hacking, Emacs ♥  you"
-        panel-show-file-path nil
-        panel-min-left-padding 10
-        panel-path-max-length 20
-
-        ;; 地理位置 - 大连
-        panel-latitude 38.9140
-        panel-longitude 121.6147
-
-        ;; 图片配置
-        panel-image-file (locate-user-emacs-file "etc/bitmap.png")
-        panel-image-width 400
-        panel-image-height 169))
-
-(use-package circadian
-  :ensure t
-  :defer t
-  ;; 不要在 load-path 扫描时就加载包
-  :init
-  ;; 这里写变量设置，不会触发包的真正加载
-  (setq circadian-themes
-        '((:sunrise . modus-operandi)
-          (:sunset  . modus-vivendi))
-        calendar-latitude  38.9140
-        calendar-longitude 121.6147
-        calendar-location-name "Dalian")
-  :hook (after-init . circadian-setup))
-
-;; ========== 平滑滚动 ==========
-(use-package pixel-scroll
-  :ensure nil
-  :if (>= emacs-major-version 29)
-  :hook (after-init . pixel-scroll-precision-mode)
-  :custom
-  ;; 像素级调整窗口
-  (window-resize-pixelwise t)
-  (frame-resize-pixelwise t)
-  (pixel-scroll-precision-interpolate-page t)
-  (pixel-scroll-precision-large-scroll-height 40.0)
-  (pixel-scroll-precision-interpolation-factor 30))
-#+end_src
-
-*** 字体配置
-
-#+begin_src emacs-lisp
-
-  ;;; 字体配置 - 优化版（缓存 + 延迟加载）
-
-  (defun font-available-p (font-name)
-    "检查字体是否可用（缓存友好）"
-    (find-font (font-spec :name font-name)))
-
-  ;; 字体缓存（避免重复探测）
-  (defvar my/font-cache nil
-    "缓存探测到的字体，避免重复查询系统字体数据库")
-
-  (defun my/detect-fonts-once ()
-  ;;   "一次性探测所有需要的字体并缓存结果"
-  (unless my/font-cache
-    (setq my/font-cache
-          (list
-           :han (cl-loop for f in '("Sarasa Mono SC" "LXGW Neo Xihei"
-                                    "LXGW WenKai Mono" "Microsoft Yahei UI")
-                         when (font-available-p f) return f)
-           :symbol (cl-loop for f in '("Symbols Nerd Font Mono" "Symbols Nerd Font" "Apple Symbols"
-                                       "Segoe UI Symbol" "Symbola" "Symbol")
-                            when (font-available-p f) return f)
-           :emoji (cl-loop for f in '("Noto Color Emoji" "Apple Color Emoji"
-                                      "Segoe UI Emoji")
-                           when (font-available-p f) return f)))))
-
-  (defun my/setup-fonts-beautiful ()
-    "设置字体（美化版）"
-    (when (display-graphic-p)
-      ;; 英文字体（使用更现代的字体）
-      ;; 推荐：Fira Code, Cascadia Code, Source Code Pro
-      (set-face-attribute 'default nil
-                          :font "IosevkaTerm NF"  ;; 或 "Fira Code"
-                          :height 120
-                          :weight 'normal)
-
-      ;; 变量字体（用于 Org 正文）
-      (set-face-attribute 'variable-pitch nil
-                          :font "Sarasa Mono SC"  ;; 或 "Microsoft YaHei UI"
-                          :height 1.0)
-
-      ;; 等宽字体（用于代码块）
-      (set-face-attribute 'fixed-pitch nil
-                          :font "JetBrains Mono"
-                          :height 1.0)
-      ;; 中文字体
-      (my/detect-fonts-once)
-      (when-let* ((han (plist-get my/font-cache :han)))
-        (setq face-font-rescale-alist `((,han . 1.3)))
-        (set-fontset-font t 'han (font-spec :family han)))
-      ;; 符号字体
-      (when-let* ((sym (plist-get my/font-cache :symbol)))
-        (set-fontset-font t 'symbol (font-spec :family sym) nil 'prepend))
-      ;; Emoji 字体
-      (when-let* ((emo (plist-get my/font-cache :emoji)))
-        (set-fontset-font t 'emoji (font-spec :family emo) nil 'prepend))))
-  (add-hook 'after-init-hook #'my/setup-fonts-beautiful)
-  ;; 新建frame时也应用（daemon 模式需要）
-  (add-hook 'after-make-frame-functions #'my/setup-fonts-beautiful)
-  ;; Circadian 切换主题后重新应用
-  (with-eval-after-load 'circadian
-    (add-hook 'circadian-after-load-theme-hook
-              (lambda (_theme) (my/setup-fonts-beautiful))))
-#+end_src
-
-*** 图标与 Modeline
-
-#+begin_src emacs-lisp
-;;; Modeline - Doom Modeline（推荐）
-(use-package doom-modeline
-  :ensure t
-  :hook (after-init . doom-modeline-mode)
-  :custom
-  ;; ========== 图标设置 ==========
-  (doom-modeline-icon t)
-  (doom-modeline-major-mode-icon t)
-  (doom-modeline-major-mode-color-icon t)
-  
-  ;; ========== 高度和样式 ==========
-  (doom-modeline-height 28)
-  (doom-modeline-bar-width 4)
-  (doom-modeline-window-width-limit 85)  ;; 窗口宽度限制
-  
-  ;; ========== 显示内容优化 ==========
-  (doom-modeline-buffer-file-name-style 'relative-from-project)
-  (doom-modeline-buffer-encoding nil)  ;; 隐藏编码
-  (doom-modeline-indent-info nil)      ;; 隐藏缩进信息
-  (doom-modeline-minor-modes nil)      ;; 隐藏次要模式（推荐）
-  
-  ;; ========== 时间与状态 ==========
-  (doom-modeline-time-icon t)
-  (doom-modeline-time nil)             ;; 是否显示时间（可选）
-  (doom-modeline-modal t)
-  (doom-modeline-modal-icon t)
-  (doom-modeline-modal-modern-icon t)
-  
-  ;; ========== LSP 支持 ==========
-  (doom-modeline-lsp t)
-  (doom-modeline-lsp-icon t)
-  
-  ;; ========== Git 信息 ==========
-  (doom-modeline-vcs-max-length 20)
-  (doom-modeline-check-simple-format t)
-  (doom-modeline-persp-name t)         ;; 显示 workspace 名称
-  (doom-modeline-persp-icon t)
-  
-  ;; ========== 性能优化 ==========
-  (doom-modeline-env-version nil)      ;; 不显示语言版本
-  (doom-modeline-github nil)           ;; 不查询 GitHub
-  (doom-modeline-mu4e nil)
-  (doom-modeline-irc nil)
-  (doom-modeline-gnus nil)
-  
-  ;; ========== Org 模式 ==========
-  (doom-modeline-enable-word-count t)
-  (doom-modeline-continuous-word-count-modes
-   '(markdown-mode gfm-mode org-mode text-mode))
-  
-  ;; ========== 项目检测 ==========
-  (doom-modeline-project-detection 'auto)
-  
-  ;; ========== Buffer 状态 ==========
-  (doom-modeline-buffer-state-icon t)
-  (doom-modeline-buffer-modification-icon t)
-  
-  :config
-  ;; ========== 自定义 Face ==========
-  (custom-set-faces
-   ;; Modeline 背景（根据主题调整）
-   '(mode-line ((t (:height 1.0 :background "#2e3440" :foreground "#d8dee9"
-                    :box (:line-width 3 :color "#2e3440")))))
-   '(mode-line-inactive ((t (:height 1.0 :background "#3b4252" :foreground "#4c566a"
-                             :box (:line-width 3 :color "#3b4252")))))
-   
-   ;; 高亮元素
-   '(doom-modeline-buffer-modified ((t (:foreground "#bf616a" :weight bold))))
-   '(doom-modeline-buffer-major-mode ((t (:foreground "#88c0d0" :weight bold))))
-   '(doom-modeline-buffer-path ((t (:foreground "#81a1c1" :weight normal))))
-   
-   ;; Git 信息
-   '(doom-modeline-vcs-branch ((t (:foreground "#a3be8c"))))
-   '(doom-modeline-vcs-modified ((t (:foreground "#ebcb8b"))))
-   
-   ;; LSP 状态
-   '(doom-modeline-lsp-success ((t (:foreground "#a3be8c" :weight bold))))
-   '(doom-modeline-lsp-warning ((t (:foreground "#ebcb8b" :weight bold))))
-   '(doom-modeline-lsp-error ((t (:foreground "#bf616a" :weight bold))))
-   
-   ;; Bar
-   '(doom-modeline-bar ((t (:background "#88c0d0"))))
-   '(doom-modeline-bar-inactive ((t (:background "#4c566a")))))
-  
-  ;; ========== 时间格式（如果启用）==========
-  (when doom-modeline-time
-    (setq display-time-format "%H:%M"
-          display-time-default-load-average nil
-          display-time-interval 60))
-  
-  ;; ========== 简化显示 ==========
-  ;; 隐藏 encoding 提示（如果都是 UTF-8）
-  (defun doom-modeline-conditional-buffer-encoding ()
-    (setq-local doom-modeline-buffer-encoding
-                (unless (and (memq (coding-system-type buffer-file-coding-system)
-                                   '(undecided utf-8))
-                             (or (not (boundp 'buffer-file-coding-system))
-                                 (eq (coding-system-eol-type buffer-file-coding-system) 0)))
-                  t)))
-  (add-hook 'after-change-major-mode-hook #'doom-modeline-conditional-buffer-encoding))
-(with-eval-after-load 'circadian
-  (defun my/doom-modeline-adapt-theme ()
-    "根据主题自动调整 modeline 颜色"
-    (let ((bg (face-background 'default))
-          (fg (face-foreground 'default)))
-      (custom-set-faces
-       `(mode-line ((t (:background ,bg :foreground ,fg
-                        :box (:line-width 3 :color ,bg)))))
-       `(mode-line-inactive ((t (:background ,(doom-blend bg fg 0.1)
-                                 :foreground ,(doom-blend fg bg 0.4))))))))
-  
-  (add-hook 'circadian-after-load-theme-hook #'my/doom-modeline-adapt-theme))
-  (use-package nerd-icons
-    :ensure t
-    :defer t)  ;; 只在需要时加载（如 dired、ibuffer）
-#+end_src
-
-** 编辑器设置
-
-#+begin_src emacs-lisp
-(use-package emacs
-  :custom
-  ;; Frame 设置
-  (frame-inhibit-implied-resize t)
-  (frame-resize-pixelwise t)
-  ;; UI 元素
-  (menu-bar-mode nil)
-  (scroll-bar-mode nil)
-  (tool-bar-mode nil)
-  (inhibit-startup-screen t)
-  (use-dialog-box nil)
-
-  ;; 窗口分隔线
-  (window-divider-default-right-width 1)
-  (window-divider-default-bottom-width 1)
-  (window-divider-default-places t)
-
-  ;; 编辑行为
-  (delete-selection-mode t)
-  (electric-indent-mode nil)
-  (electric-pair-mode t)
-  (global-auto-revert-mode t)
-
-  ;; 光标和滚动
-  (blink-cursor-mode nil)
-  (mouse-wheel-progressive-speed nil)
-  (scroll-conservatively 101)
-  (scroll-step 2)
-  (scroll-margin 2)
-
-  ;; 制表符
-  (tab-width 4)
-  (indent-tabs-mode nil)
-  (tab-always-indent 'complete)
-
-  ;; 备份和锁文件
-  (make-backup-files nil)
-  (create-lockfiles nil)
-
-  ;; 补全
-  (completion-cycle-threshold 3)
-
-  ;; 初始模式
-  (initial-major-mode 'lisp-interaction-mode)
-
-  :init
-  ;; 运行时目录（避免重复创建）
-  (let ((dirs '("etc/" "etc/server/" "etc/auto-save-list/"
-                "etc/org-persist/" "etc/transient/" "etc/persistent-scratch/")))
-    (dolist (dir dirs)
-      (let ((full-dir (locate-user-emacs-file dir)))
-        (unless (file-exists-p full-dir)
-          (make-directory full-dir t)))))
-
-  ;; 路径设置
-  (setq server-auth-dir (locate-user-emacs-file "etc/server/")
-        auto-save-list-file-prefix (locate-user-emacs-file "etc/auto-save-list/.saves-")
-        custom-file (locate-user-emacs-file "etc/custom-vars.el")
-        default-directory "C:/Users/wei/Documents/")
-
-  ;; 加载 custom-file
-  (load custom-file 'noerror 'nomessage)
-
-  ;; 警告和编译
-  (setq warning-minimum-level :emergency
-        native-comp-async-report-warnings-errors nil)
-
-  ;; Frame 标题
-  (setq frame-title-format "%b"
-        icon-title-format "%b")
-
-  ;; 性能优化
-  (setq-default bidi-paragraph-direction 'left-to-right)
-  (setq bidi-inhibit-bpa t
-        load-prefer-newer t
-        inhibit-compacting-font-caches t
-        display-raw-bytes-as-hex t
-        redisplay-skip-fontification-on-input t)
-
-  ;; 滚动优化
-  (setq hscroll-step 2
-        hscroll-margin 2
-        scroll-preserve-screen-position 'always
-        auto-hscroll-mode 'current-line
-        auto-window-vscroll nil)
-
-  ;; 剪贴板
-  (setq select-enable-primary t
-        select-enable-clipboard t
-        mouse-yank-at-point t)
-
-  ;; 其他
-  (setq ring-bell-function 'ignore
-        fill-column 80)
-
-  ;; 补全谓词
-  (when (boundp 'read-extended-command-predicate)
-    (setq read-extended-command-predicate
-          #'command-completion-default-include-p))
-
-  ;; 启用被禁用的命令
-  (dolist (cmd '(narrow-to-defun narrow-to-page narrow-to-region
-                                 dired-find-alternate-file list-timers list-threads))
-    (put cmd 'disabled nil))
-
-  ;; 字体大小
-  (set-face-attribute 'default nil :height 110)
-
-  ;; _ 作为单词组成部分
-  (add-hook 'after-change-major-mode-hook
-            (lambda ()
-              (modify-syntax-entry ?_ "w")))
-
-  :config
-  ;; 窗口分隔线
-  (window-divider-mode 1)
-  (let ((bg (face-attribute 'default :background)))
-    (set-face-attribute 'window-divider nil :foreground bg)
-    (set-face-attribute 'window-divider-first-pixel nil :foreground bg)
-    (set-face-attribute 'window-divider-last-pixel nil :foreground bg))
-
-  ;; help-fns 延迟加载
-  (with-eval-after-load 'help-fns
-    (put 'help-fns-edit-variable 'disabled nil))
-
-  :bind
-  ([escape] . keyboard-escape-quit))
-
-(use-package winner
-  :ensure nil
-  :commands (winner-undo winner-redo)
-  :hook (after-init . winner-mode)
-  :custom (winner-boring-buffers '("*Completions*"
-                                   "*Compile-Log*"
-                                   "*inferior-lisp*"
-                                   "*Fuzzy Completions*"
-                                   "*Apropos*"
-                                   "*Help*"
-                                   "*cvs*"
-                                   "*Buffer List*"
-                                   "*Ibuffer*"
-                                   "*esh command on file*")))
-#+end_src
-
-** 编辑增强
 *** 删除选中文本
-
 #+begin_src emacs-lisp
   (use-package delsel
     :ensure nil
     :hook (after-init . delete-selection-mode))
 #+end_src
-
 *** 跳转 (Avy)
-
 #+begin_src emacs-lisp
     (use-package avy
       :defer t
@@ -642,9 +689,7 @@
             avy-background t
             avy-style 'pre))
 #+end_src
-
 *** 自动配对
-
 #+begin_src emacs-lisp
   (use-package elec-pair
     :ensure nil
@@ -682,10 +727,8 @@
     :ensure t
     :hook (after-init . global-so-long-mode))
 #+end_src
-
-** 补全系统
+** 补全、搜索与命令面板
 *** Orderless 匹配
-
 #+begin_src emacs-lisp
     (use-package orderless
       :ensure t
@@ -697,9 +740,7 @@
       (completion-category-defaults nil) ;; Disable defaults, use our settings    
       (orderless-component-separator #'orderless-escapable-split-on-space))
 #+end_src
-
 *** 拼音支持
-
 #+begin_src emacs-lisp
   (use-package pinyinlib
     :ensure t
@@ -710,9 +751,7 @@
       (orderless-regexp (pinyinlib-build-regexp-string str)))
     (add-to-list 'orderless-matching-styles 'completion--regex-pinyin))
 #+end_src
-
 *** Vertico
-
 #+begin_src emacs-lisp
   (use-package vertico
     :ensure t
@@ -728,9 +767,7 @@
     (vertico-resize nil)
     (vertico-count 15))
 #+end_src
-
 *** Marginalia
-
 #+begin_src emacs-lisp
   (use-package marginalia
     :ensure t
@@ -997,194 +1034,7 @@
     (yas-snippet-dirs (list (locate-user-emacs-file "yasnippets"))))
 #+end_src
 
-*** Eglot
-
-#+begin_src emacs-lisp
-(use-package eglot
-  :ensure nil  ;; Emacs 29+ 内置
-  :defer t
-  :hook ((python-ts-mode . eglot-ensure)
-         (ess-r-mode . eglot-ensure)
-         (inferior-ess-r-mode . eglot-ensure))
-  :init
-  (setq eglot-extend-to-xref t
-        eglot-events-buffer-config 0          ;; 禁用事件日志（关键）
-        eglot-sync-connect t              ;; 异步连接
-        eglot-autoshutdown t                ;; 自动关闭无用服务器
-        eglot-send-changes-idle-time 0.5)   ;; 延迟发送更改
-  :config
-  (add-to-list 'eglot-server-programs
-               '(python-ts-mode . ("ty" "server")))
-  ;; 配置 R 语言服务器
-  (add-to-list 'eglot-server-programs
-               '(ess-r-mode . ("R" "--slave" "-e"
-                               "languageserver::run()")))
-  ;; 语言服务器配置选项
-  (setq-default eglot-workspace-configuration
-                '(:r
-                  (:lsp
-                   (:diagnostics t              ;; 启用诊断
-                    :debug nil                  ;; 禁用调试日志
-                    :logLevel "error"           ;; 只记录错误
-                    :rich_documentation t       ;; 启用富文档
-                    :snippet_support t          ;; 启用代码片段
-                    :max_completions 200        ;; 补全项数量
-                    :lint_cache t               ;; 启用 lint 缓存
-                    :link_file_size_limit 16384)))) ;; 文件大小限制
-  ;; (add-to-list 'eglot-server-programs
-  ;;             '((python-mode python-ts-mode)
-  ;;             "basedpyright-langserver" "--stdio"))
-  ;; 这个目前是没有办法安装
-  :bind (:map eglot-mode-map
-         ("C-c l r" . eglot-rename)
-         ("C-c l a" . eglot-code-actions)
-         ("C-c l d" . eldoc-doc-buffer)))
-;;; Flymake - 与 eglot 配合使用
-(use-package flymake
-  :ensure nil  ;; 内置
-  :defer t
-  :hook ((python-ts-mode ess-r-mode) . flymake-mode)
-         :custom
-         (flymake-no-changes-timeout 0.5)  ;; 延迟检查
-         (flymake-start-on-save-buffer t)
-         :bind (:map flymake-mode-map
-                ("C-c ! n" . flymake-goto-next-error)
-                ("C-c ! p" . flymake-goto-prev-error)
-                ("C-c ! l" . flymake-show-buffer-diagnostics)))
-
-  (use-package flymake-ruff
-    :ensure t
-    :defer t
-    :hook (python-ts-mode . flymake-ruff-load))
-
-#+end_src
-** Format-all
-#+begin_src emacs-lisp
-(use-package format-all
-  :ensure t
-  :defer t
-  :diminish
-  :hook ((LaTeX-mode python-ts-mode c-mode) . format-all-mode)
-  :init
-  (setq format-all-show-errors 'never)
-  :config
-  (setq format-all-default-formatters
-        '(("LaTeX" auctex)
-          ("Emacs Lisp" emacs-lisp)
-          ("C" astyle)
-          ("Python" ruff)
-          ("BibTeX" emacs-bibtex))))
-(add-hook 'format-all-mode-hook #'format-all-ensure-formatter)
-#+end_src
-
-** 高亮与反馈
-*** 当前行高亮
-#+begin_src emacs-lisp
-  (use-package hl-line
-    :ensure nil
-    :hook ((after-init . global-hl-line-mode)
-           ((dashboard-mode eshell-mode shell-mode term-mode vterm-mode) .
-            (lambda () (setq-local global-hl-line-mode nil))))
-    :custom-face
-    ;; 根据主题调整高亮行颜色
-    (hl-line ((t (:extend t :background "#2d3436")))))
-#+end_src
-*** 括号匹配
-#+begin_src emacs-lisp
-  (use-package paren
-    :defer t
-    :after (:any text prog)
-    :hook ((text-mode prog-mode) . show-paren-mode)
-    :custom
-    (show-paren-when-point-inside-paren t)
-    (show-paren-when-point-in-periphery t)
-    :config
-    (setq show-paren-context-when-offscreen
-          (if (childframe-workable-p) 'child-frame 'overlay))
-    (with-no-warnings
-      (defun display-line-overlay (pos str &optional face)
-        "Display line at POS as STR with FACE."
-        (let ((ol (save-excursion
-                    (goto-char pos)
-                    (make-overlay (line-beginning-position)
-                                  (line-end-position)))))
-          (overlay-put ol 'display str)
-          (overlay-put ol 'face (or face '(:inherit highlight)))
-          ol))
-
-      (defvar-local show-paren--off-screen-overlay nil)
-      (defun show-paren-off-screen (&rest _args)
-        "Display matching line for off-screen paren."
-        (when (overlayp show-paren--off-screen-overlay)
-          (delete-overlay show-paren--off-screen-overlay))
-        (when (and (overlay-buffer show-paren--overlay)
-                   (not (or cursor-in-echo-area
-                            executing-kbd-macro
-                            noninteractive
-                            (minibufferp)
-                            this-command))
-                   (and (not (bobp))
-                        (memq (char-syntax (char-before)) '(?\) ?\$)))
-                   (= 1 (logand 1 (- (point)
-                                     (save-excursion
-                                       (forward-char -1)
-                                       (skip-syntax-backward "/\\")
-                                       (point))))))
-          (cl-letf (((symbol-function #'minibuffer-message)
-                     (lambda (msg &rest args)
-                       (let ((msg (apply #'format-message msg args)))
-                         (setq show-paren--off-screen-overlay
-                               (display-line-overlay
-                                (window-start) msg))))))
-            (blink-matching-open))))
-      (advice-add #'show-paren-function :after #'show-paren-off-screen)))
-#+end_src
-*** 脉冲高亮
-#+begin_src emacs-lisp
-  (use-package pulse
-    :ensure nil
-    :custom-face
-    (pulse-highlight-start-face ((t (:inherit region :background unspecified))))
-    (pulse-highlight-face ((t (:inherit region :background unspecified :extend t))))
-    :hook (((dumb-jump-after-jump imenu-after-jump) . my/recenter-and-pulse)
-           ((bookmark-after-jump magit-diff-visit-file next-error) . my/recenter-and-pulse-line))
-    :init
-    (with-no-warnings
-      (defun my/pulse-momentary-line (&rest _)
-        "Pulse the current line."
-        (pulse-momentary-highlight-one-line (point)))
-
-      (defun my/pulse-momentary (&rest _)
-        "Pulse the region or current line."
-        (if (fboundp 'xref-pulse-momentarily)
-            (xref-pulse-momentarily)
-          (my/pulse-momentary-line)))
-
-      (defun my/recenter-and-pulse (&rest _)
-        "Recenter and pulse the region or current line."
-        (recenter)
-        (my/pulse-momentary))
-
-      (defun my/recenter-and-pulse-line (&rest _)
-        "Recenter and pulse the current line."
-        (recenter)
-        (my/pulse-momentary-line))
-
-      (dolist (cmd '(recenter-top-bottom
-                     other-window switch-to-buffer
-                     aw-select toggle-window-split
-                     windmove-do-window-select
-                     pager-page-down pager-page-up
-                     treemacs-select-window))
-        (advice-add cmd :after #'my/pulse-momentary-line))
-
-      (dolist (cmd '(pop-to-mark-command
-                     pop-global-mark
-                     goto-last-change))
-        (advice-add cmd :after #'my/recenter-and-pulse))))
-#+end_src
-
-** 文件管理
+** 项目文件与工具
 *** Ibuffer
 #+begin_src emacs-lisp
   (use-package ibuffer
@@ -1197,9 +1047,7 @@
     :hook (ibuffer-mode . nerd-icons-ibuffer-mode)
     :config (setq nerd-icons-ibuffer-icon t))
 #+end_src
-
 *** Minibuffer
-
 #+begin_src emacs-lisp
   (use-package minibuffer
     :bind (:map minibuffer-local-map
@@ -1236,7 +1084,6 @@
 #+end_src
 
 *** Dired
-
 #+begin_src emacs-lisp
  (use-package dired
   :ensure nil
@@ -1276,9 +1123,7 @@
   :bind (:map dired-mode-map
          ("C-c f" . fd-dired)))
 #+end_src
-
 *** Bookmark
-
 #+begin_src emacs-lisp
   (use-package bookmark
     :ensure nil
@@ -1352,33 +1197,28 @@
       (tabulated-list-init-header))))
 #+end_src
 
+*** Ripgrep
+#+begin_src emacs-lisp
+(use-package rg
+  :ensure t
+  :hook (after-init . rg-enable-default-bindings)
+  :bind (:map rg-global-map
+         ("c" . rg-dwim-current-dir)
+         ("f" . rg-dwim-current-file)
+         ("m" . rg-menu))
+  :init
+  (setq rg-group-result t
+        rg-show-columns t)
+  :config
+  (cl-pushnew '("tmpl" . "*.tmpl") rg-custom-type-aliases))
+#+end_src
+
 ** 笔记系统
 *** 全局常量与路径
 #+begin_src emacs-lisp
-(defvar my/org-agenda-root "C:/Users/wei/Documents/org/agenda/"
-  "Agenda 文件的根目录。")
-(defvar my/denote-root "C:/Users/wei/Documents/org/notes/"
-  "Denote 笔记存储目录。")
-(defvar my/org-root "C:/Users/wei/Documents/org/"
-  "Org文件根目录。")
-(defun my/normalize-path (path)
-  "将Windows路径转换为Emacs内部表示。"
-  (replace-regexp-in-string "\\\\" "/" path))
-(setq my/org-agenda-root (my/normalize-path my/org-agenda-root)
-      my/org-root (my/normalize-path my/org-root)
-      my/denote-root (my/normalize-path my/denote-root))
-(defun my/ensure-directories-exist ()
-  "确保所有必要的目录都存在。"
-  (dolist (dir (list my/org-agenda-root my/denote-root))
-    (let ((normalized-dir (file-name-as-directory dir)))
-      (unless (file-directory-p normalized-dir)
-        (make-directory normalized-dir t)
-        (message "已创建目录: %s" normalized-dir)))))
-(add-hook 'after-init-hook #'my/ensure-directories-exist)
+
 #+end_src
-
 *** Org 性能优化
-
 #+begin_src emacs-lisp
   (defvar my/org-optimized-p nil
     "标记是否已经优化过Org解析。")
@@ -1403,7 +1243,6 @@
 #+end_src
 
 *** Org-mode 核心配置
-
 #+begin_src emacs-lisp
 (use-package org
   :diminish
@@ -1482,7 +1321,6 @@
     "生成图片保存路径"
     (unless (buffer-file-name)
       (error "请先保存当前 org 文件"))
-
     (let* ((heading (or (org-get-heading t t t t) "default"))
            (clean-heading (replace-regexp-in-string "[^a-zA-Z0-9\u4e00-\u9fa5-]+" "_" heading))
            (timestamp (format-time-string "%Y%m%d_%H%M%S"))
@@ -1490,14 +1328,10 @@
            (dir (expand-file-name (concat "Figure/" clean-heading "/") base-dir))
            (filename (concat timestamp ".png"))
            (full-path (expand-file-name filename dir)))
-
       (make-directory dir t)
       (message "保存图片到: %s" full-path)
       full-path))
-
   (setq org-yank-image-file-name-function #'my/org-yank-image-file-name)
-
-  ;; 修正版：正确插入描述
   (defun my/org-yank-image-add-description ()
     "在粘贴图片后添加描述"
     (when (eq major-mode 'org-mode)
@@ -1509,17 +1343,13 @@
             (when (not (string-empty-p description))
               ;; 替换整个链接，添加描述
               (replace-match (format "[[file:%s][%s]]" file-path description) t t)))))))
-
   ;; 移除旧的 advice（如果存在）
   (advice-remove 'yank-media #'my/org-yank-image-add-description)
-
   ;; 添加新的 advice
   (advice-add 'yank-media :after
               (lambda (&rest _)
                 (when (eq major-mode 'org-mode)
                   (run-with-idle-timer 0.1 nil #'my/org-yank-image-add-description))))
-
-
   (defun my/add-latex-in-org-mode-expansions ()
     (modify-syntax-entry ?\\ "\\" org-mode-syntax-table)
     (setq paragraph-start (concat paragraph-start "\\|\\\\end{\\([A-Za-z0-9*]+\\)}"))
@@ -1535,88 +1365,12 @@
                      my/mark-latex-inside-pairs
                      my/mark-latex-outside-pairs
                      my/mark-LaTeX-math)))))
-
   (defun my/org-indent-setup ()
     (setq-local show-paren-mode nil))
   (my/org-optimize-emphasis-parsing))
 #+end_src
 
-*** 文献管理与引用
-**** Bibtex 文件路径设置
-#+begin_src emacs-lisp
-;; ========== 定义文献库路径 ==========
-(defvar my/bibliography-directory 
-  (expand-file-name "bibliography/" my/org-root)
-  "文献库存储目录")
-(defvar my/bibliography-files
-  (list (expand-file-name "我的文库.bib" my/bibliography-directory))
-  "主要的 BibTeX 文件列表")
-(defvar my/bibliography-notes-directory
-  (expand-file-name "literature-notes/" my/denote-root)
-  "文献笔记存储目录（使用 Denote 管理）")
-;; 确保目录存在
-(dolist (dir (list my/bibliography-directory my/bibliography-notes-directory))
-  (unless (file-directory-p dir)
-    (make-directory dir t)))
-#+end_src
-
-**** Org-cite 核心配置
-#+begin_src emacs-lisp
-(use-package oc
-  :ensure nil  ;; Org 9.5+ 内置
-  :after org
-  :custom
-  ;; ========== 全局文献库 ==========
-  (org-cite-global-bibliography my/bibliography-files)
-  ;; ========== 插入引用样式 ========== ;; 常用样式：@key, [cite:@key], [cite/text:@key]
-  (org-cite-insert-processor 'basic)
-  ;; ========== 引用激活行为 ==========
-  ;; 点击引用时的操作（由 Basic 处理）
-  (org-cite-activate-processor 'basic)
-  ;; ========== 跟随链接行为 ==========
-  (org-cite-follow-processor 'basic)
-  ;; ========== 导出处理器 ==========
-  ;; LaTeX 使用 biblatex, HTML 使用 CSL
-  (org-cite-export-processors
-   '((latex biblatex)
-     (html csl)
-     (t basic)))
-  :config
-  ;; ========== CSL 样式文件（用于 HTML 导出）==========
-  (setq org-cite-csl-styles-dir 
-        (expand-file-name "csl-styles/" my/bibliography-directory))
-  
-  ;; 创建 CSL 目录（如果不存在）
-  (unless (file-directory-p org-cite-csl-styles-dir)
-    (make-directory org-cite-csl-styles-dir t)
-    (message "请从 https://www.zotero.org/styles 下载 CSL 样式文件到: %s" 
-             org-cite-csl-styles-dir)))
-#+end_src
-
-**** BibTeX 文件编辑优化
-#+begin_src emacs-lisp
-(use-package bibtex
-  :ensure nil
-  :defer t
-  :mode ("\\.bib\\'" . bibtex-mode)
-  :custom
-  (bibtex-dialect 'biblatex)  ;; 使用 BibLaTeX 格式
-  (bibtex-user-optional-fields
-   '(("keywords" "关键词，用逗号分隔")
-     ("file" "PDF 文件路径")
-     ("doi" "DOI")
-     ("url" "在线链接")))
-  (bibtex-align-at-equal-sign t)
-  (bibtex-autokey-year-length 4)
-  (bibtex-autokey-name-year-separator "")
-  (bibtex-autokey-year-title-separator "")
-  (bibtex-autokey-titleword-length 5)
-  (bibtex-autokey-titlewords 3)
-  :bind (:map bibtex-mode-map
-         ("C-c C-c" . bibtex-clean-entry)))
-#+end_src
 *** Denote 笔记系统
-
 #+begin_src emacs-lisp
   (use-package denote
     :ensure t
@@ -1693,18 +1447,11 @@
 #+end_src
 
 *** Org Agenda 配置
-
 #+begin_src emacs-lisp
-
-(defvar my/org-projects-dir (expand-file-name "projects/" my/org-agenda-root))
-(defvar my/org-work-dir (expand-file-name "work/" my/org-agenda-root))
-(defvar my/org-personal-dir (expand-file-name "personal/" my/org-agenda-root))
-
 (defvar my/org-agenda-files-cache nil
   "缓存的 agenda 文件列表")
 (defvar my/org-agenda-files-last-check 0
   "上次检查的时间戳")
-
 (defun my/org-auto-collect-agenda-files (&optional force-refresh)
   "自动收集所有子目录中的 Org 文件（带缓存）"
   (let ((now (float-time))
@@ -1725,16 +1472,12 @@
                 (when (file-exists-p inbox) (list inbox))))))
       (setq my/org-agenda-files-last-check now))
     my/org-agenda-files-cache))
-
-;; ========== 关键优化: 只在真正打开 agenda 时扫描 ==========
 (with-eval-after-load 'org-agenda
   (setq org-agenda-files nil)  ;; 启动时不设置
-  
   (defun my/org-agenda-prepare (&rest _)
     "延迟加载 agenda 文件列表"
     (unless org-agenda-files
       (setq org-agenda-files (my/org-auto-collect-agenda-files))))
-  
   (advice-add 'org-agenda :before #'my/org-agenda-prepare)
   
   ;; Agenda 显示设置（保持原样）
@@ -1764,7 +1507,6 @@
 #+end_src
 
 *** Org Capture
-
 #+begin_src emacs-lisp
   (defvar my/org-capture-files
     '(("inbox" . "inbox.org")
@@ -1853,7 +1595,6 @@
 #+end_src
 
 *** Org Modern
-
 #+begin_src emacs-lisp
   (use-package org-modern
     :ensure t
@@ -1867,9 +1608,13 @@
       :ensure t
       :hook (org-mode . org-modern-mode)
       :custom
+       (org-tags-column 0)
+       (org-special-ctrl-a/e t)
+       (org-insert-heading-respect-content t)
       (org-modern-keyword t)
+      (org-modern-table-horizontal 0.2)
       (org-modern-tag t)
-      (org-modern-timestamp t)
+      (org-modern-timestamp nil)
       (org-modern-table t)
       (org-modern-priority t)
       :config
@@ -1891,7 +1636,6 @@
       (setq
        ;; 标题星号 - 渐进式圆形
        org-modern-star '("◉" "○" "◈" "◇" "⬡" "⬢")
-
        ;; 列表符号 - 统一箭头系
        org-modern-list '((43 . "▶")   ;; + 实心三角
                          (45 . "▸")   ;; - 空心三角
@@ -1905,16 +1649,7 @@
        org-modern-latex
        '((t . t)
          ("\\(" "⁅" "⁆")
-         ("\\[" "⟦" "⟧"))
-       org-modern-table-horizontal 0.2
-       org-modern-table t
-       ;; 标签美化
-       org-modern-tag t
-       org-modern-priority t
-       org-modern-timestamp t
-       org-tags-column 0
-       org-special-ctrl-a/e t
-       org-insert-heading-respect-content t)))
+         ("\\[" "⟦" "⟧")))))
 
     (use-package org-src
       :ensure nil
@@ -2033,55 +1768,12 @@
         (message "已清除所有提醒"))
 #+end_src
 
-*** RefTeX
-
-#+begin_src emacs-lisp
-  (use-package reftex
-    :defer t
-    :hook ((LaTeX-mode . turn-on-reftex)
-           (org-mode . turn-on-reftex))
-    :config
-    (setq reftex-plug-into-AUCTeX t
-          reftex-cite-format 'biblatex))
-
-  (use-package eldoc
-    :after (eglot)
-    :bind
-    (:map eglot-mode-map ("C-c C-d" . eldoc))
-    :config
-    (setq eldoc-idle-delay 0.1)
-
-    ;; 打开 eldoc-buffer 时关闭 echo-area 显示, eldoc-buffer 会跟随显示 hover 信息, 如
-    ;; 函数签名。
-    (setq eldoc-echo-area-prefer-doc-buffer t)
-
-    ;; 在屏幕右侧显示 eldoc-buffer
-    (add-to-list 'display-buffer-alist
-                 '("^\\*eldoc.*\\*"
-                   (display-buffer-reuse-window display-buffer-in-side-window)
-                   (dedicated . t)
-                   (side . right)
-                   (inhibit-same-window . t)))
-
-    ;; 将 minibuffer 窗口高度设为 1，可以确保只显示一行（默认为小数，表示 frame 高度占
-    ;; 比，会导致显示多行）。
-    (setq max-mini-window-height 1)
-    ;; 为 nil 时只单行显示 eldoc 信息.
-    (setq eldoc-echo-area-use-multiline-p nil))
-#+end_src 
-
-*** Org -> Html导出
+*** Org导出
 #+BEGIN_SRC emacs-lisp
   ;; 导出 HTML 时自动追加 org.css
   (with-eval-after-load 'ox-html
     (setq org-html-head-extra
           "<link rel=\"stylesheet\" type=\"text/css\" href=\"https://gongzhitaao.org/orgcss/org.css\"/>"))
-#+END_SRC
-
-** LaTeX 配置
-*** Org -> LaTeX 导出
-
-#+begin_src emacs-lisp
 (with-eval-after-load 'ox-latex
   (setq org-latex-pdf-process '("latexmk -xelatex -quiet -shell-escape -f %f"))
   (push '(
@@ -2096,9 +1788,447 @@
           ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))
         org-latex-classes))
 #+end_src 
+*** org引用配置
+#+begin_src emacs-lisp
+(use-package oc
+  :ensure nil  ;; Org 9.5+ 内置
+  :after org
+  :custom
+  ;; ========== 全局文献库 ==========
+  (org-cite-global-bibliography my/bibliography-files)
+  ;; ========== 插入引用样式 ========== ;; 常用样式：@key, [cite:@key], [cite/text:@key]
+  (org-cite-insert-processor 'basic)
+  ;; ========== 引用激活行为 ==========
+  ;; 点击引用时的操作（由 Basic 处理）
+  (org-cite-activate-processor 'basic)
+  ;; ========== 跟随链接行为 ==========
+  (org-cite-follow-processor 'basic)
+  ;; ========== 导出处理器 ==========
+  ;; LaTeX 使用 biblatex, HTML 使用 CSL
+  (org-cite-export-processors
+   '((latex biblatex)
+     (html csl)
+     (t basic)))
+  :config
+  ;; ========== CSL 样式文件（用于 HTML 导出）==========
+  (setq org-cite-csl-styles-dir 
+        (expand-file-name "csl-styles/" my/bibliography-directory))
+  
+  ;; 创建 CSL 目录（如果不存在）
+  (unless (file-directory-p org-cite-csl-styles-dir)
+    (make-directory org-cite-csl-styles-dir t)
+    (message "请从 https://www.zotero.org/styles 下载 CSL 样式文件到: %s" 
+             org-cite-csl-styles-dir)))
+#+end_src
+*** Org-babel配置文件
+#+begin_src emacs-lisp
+  (with-eval-after-load 'org
+    (org-babel-do-load-languages
+     'org-babel-load-languages
+     '((python . t)
+       (R . t)
+       (C . t))))
+#+end_src
+*** Markdown
+#+BEGIN_SRC emacs-lisp
+(use-package markdown-mode
+  :ensure t
+  :defer t
+  :mode (("README\\.md\\'" . gfm-mode)
+         ("\\.md\\'" . markdown-mode)
+         ("\\.markdown\\'" . markdown-mode))
+  :hook ((markdown-mode . visual-line-mode)
+         (markdown-mode . display-fill-column-indicator-mode))
+  :custom
+  (markdown-command "pandoc")
+  (markdown-fontify-code-blocks-natively t)
+  (markdown-enable-math t)
+  (markdown-header-scaling t)
+  (markdown-header-scaling-values '(1.3 1.2 1.1 1.0 1.0 1.0))
+  :custom-face
+  (markdown-header-face-1 ((t (:height 1.3 :weight bold))))
+  (markdown-header-face-2 ((t (:height 1.2 :weight bold))))
+  (markdown-code-face ((t (:background "#2e3440")))))
+(use-package markdown-toc
+  :ensure t
+  :defer t
+  :after markdown-mode
+  :bind (:map markdown-mode-map
+         ("C-c C-t" . markdown-toc-generate-or-refresh-toc))
+  :custom
+  (markdown-toc-header-toc-title "## 目录"))
+#+end_src
+** 编程语言
+*** Treesit配置
+#+BEGIN_SRC emacs-lisp
+  (use-package treesit
+    :ensure nil
+    :defer t
+    :custom
+    (treesit-extra-load-path (list (expand-file-name "etc/tree-sitter" user-emacs-directory)))
+    ;; 语法源列表
+    (treesit-language-source-alist
+     '((python "https://github.com/tree-sitter/tree-sitter-python")
+       (elisp "https://github.com/Wilfred/tree-sitter-elisp")
+       (markdown "https://github.com/ikatyang/tree-sitter-markdown"))))
+#+end_src
+*** Python的配置
+#+begin_src emacs-lisp
+(use-package uv-python
+  :mode ("\\.py\\'" . python-ts-mode)
+  :defer t
+  :init
+  ;; 基础 Python 设置
+  (setq python-indent-offset 4
+        python-shell-completion-native-enable nil)
+  ;; 禁用内置 flymake
+  (add-hook 'python-ts-mode-hook
+            (lambda ()
+              (remove-hook 'flymake-diagnostic-functions 'python-flymake t)))
+  :hook
+  ;; 自动启用 uv-python-mode
+  ((python-mode python-ts-mode) . uv-python-mode)
+  ((python-mode python-ts-mode) . display-line-numbers-mode)
+  :custom
+  (uv-python-venv-dir ".venv")
+  (uv-python-auto-activate t)
+  :bind (:map python-ts-mode-map
+         ("C-c v a" . uv-python-activate)
+         ("C-c v d" . uv-python-deactivate)
+         ("C-c v s" . uv-python-switch)
+         ("C-c v c" . uv-python-clear-cache)
+         :map eglot-mode-map
+         ("C-c l r" . eglot-rename)
+         ("C-c l a" . eglot-code-actions)
+         ("C-c l f" . eglot-format)
+         ("C-c l d" . eglot-find-declaration))
+  :config
+  (uv-python-setup))
+#+end_src
+*** R 
+#+BEGIN_SRC emacs-lisp
+;;; ESS - R 语言支持
+(use-package ess
+  :ensure t
+  :defer t
+  :mode (("\\.R\\'" . R-mode)
+         ("\\.r\\'" . R-mode)
+         ("\\.Rmd\\'" . poly-markdown+r-mode))  ;; 如果使用 R Markdown
+  :hook
+  ((ess-r-mode . eglot-ensure)          ;; 自动启动 eglot
+   (inferior-ess-r-mode . (lambda ()     ;; R 控制台配置
+                            (setq-local comint-scroll-to-bottom-on-input t)
+                            (setq-local comint-scroll-to-bottom-on-output t)
+                            (setq-local comint-move-point-for-output t))))
+  :init
+  ;; 性能优化
+  (setq ess-use-flymake nil              ;; 禁用 ESS 自带的 flymake
+        ess-use-eldoc 'script-only       ;; 只在脚本中使用 eldoc
+        ess-eldoc-show-on-symbol nil     ;; 禁用符号上的 eldoc
+        ess-startup-directory 'default-directory
+        ess-ask-for-ess-directory nil)
+  :custom
+  ;; R 进程配置
+  (ess-indent-offset 2)
+  (ess-style 'RStudio)                   ;; 使用 RStudio 风格缩进
+  (ess-offset-continued 2)
+  (ess-expression-offset 2)
+  (ess-nuke-trailing-whitespace-p t)     ;; 删除行尾空格
+  (ess-default-style 'RStudio)
+  ;; R 交互配置
+  (inferior-R-args "--no-save --no-restore")
+  (ess-R-font-lock-keywords
+   '((ess-R-fl-keyword:keywords . t)
+     (ess-R-fl-keyword:constants . t)
+     (ess-R-fl-keyword:modifiers . t)
+     (ess-R-fl-keyword:fun-defs . t)
+     (ess-R-fl-keyword:assign-ops . t)
+     (ess-R-fl-keyword:%op% . t)
+     (ess-fl-keyword:fun-calls . t)
+     (ess-fl-keyword:numbers . t)
+     (ess-fl-keyword:operators . t)
+     (ess-fl-keyword:delimiters . t)
+     (ess-fl-keyword:= . t)
+     (ess-R-fl-keyword:F&T . t))))
+;; 定期清理 R 进程
+(defun my/ess-cleanup-old-processes ()
+  "Kill idle R processes older than 1 hour"
+  (dolist (proc (process-list))
+    (when (and (string-match-p "^R:" (process-name proc))
+               (> (float-time (time-since (process-get proc 'last-activity)))
+                  3600))
+      (delete-process proc))))
+(run-with-idle-timer 1800 t #'my/ess-cleanup-old-processes)
+#+end_src
+*** Elisp配置
+#+BEGIN_SRC emacs-lisp
+  (use-package elisp-mode
+    :ensure nil
+    :bind (:map emacs-lisp-mode-map
+                ("C-c C-x" . ielm)
+                ("C-c C-c" . eval-defun)
+                ("C-c C-b" . eval-buffer))
+    :config
+    (defun my/lisp-indent-function (indent-point state)
+      "改进的 Lisp 缩进函数"
+      (let ((normal-indent (current-column))
+            (orig-point (point)))
+        (goto-char (1+ (elt state 1)))
+        (parse-partial-sexp (point) calculate-lisp-indent-last-sexp 0 t)
+        (cond
+         ((and (elt state 2)
+               (or (not (looking-at "\\sw\\|\\s_"))
+                   (looking-at ":")))
+          (unless (> (save-excursion (forward-line 1) (point))
+                     calculate-lisp-indent-last-sexp)
+            (goto-char calculate-lisp-indent-last-sexp)
+            (beginning-of-line)
+            (parse-partial-sexp (point) calculate-lisp-indent-last-sexp 0 t))
+          (backward-prefix-chars)
+          (current-column))
+         ((and (save-excursion
+                 (goto-char indent-point)
+                 (skip-syntax-forward " ")
+                 (not (looking-at ":")))
+               (save-excursion
+                 (goto-char orig-point)
+                 (looking-at ":")))
+          (save-excursion
+            (goto-char (+ 2 (elt state 1)))
+            (current-column)))
+         (t
+          (let* ((function (buffer-substring (point)
+                                             (progn (forward-sexp 1) (point))))
+                 (method (or (function-get (intern-soft function)
+                                           'lisp-indent-function)
+                             (get (intern-soft function) 'lisp-indent-hook))))
+            (cond ((or (eq method 'defun)
+                       (and (null method)
+                            (length> function 3)
+                            (string-match "\\`def" function)))
+                   (lisp-indent-defform state indent-point))
+                  ((integerp method)
+                   (lisp-indent-specform method state indent-point normal-indent))
+                  (method
+                   (funcall method indent-point state))))))))
 
+    (add-hook 'emacs-lisp-mode-hook
+              (lambda () (setq-local lisp-indent-function #'my/lisp-indent-function)))
+
+    (add-hook 'help-mode-hook #'cursor-sensor-mode)
+
+    (defun function-advices (function)
+      "返回 FUNCTION 的所有 advice"
+      (let ((flist (indirect-function function)) advices)
+        (while (advice--p flist)
+          (push (advice--car flist) advices)
+          (setq flist (advice--cdr flist)))
+        (nreverse advices)))
+
+    (defun add-remove-advice-button (advice function)
+      "为 ADVICE 添加移除按钮"
+      (when (and (functionp advice) (functionp function))
+        (let ((inhibit-read-only t)
+              (msg (format "Remove advice `%s'" advice)))
+          (insert "\t")
+          (insert-button
+           "Remove"
+           'face 'custom-button
+           'cursor-sensor-functions `((lambda (&rest _) (message ,msg)))
+           'help-echo msg
+           'action (lambda (_)
+                     (when (yes-or-no-p msg)
+                       (message "%s from function `%s'" msg function)
+                       (advice-remove function advice)
+                       (if (eq major-mode 'helpful-mode)
+                           (helpful-update)
+                         (revert-buffer nil t))))
+           'follow-link t))))
+
+    (defun add-button-to-remove-advice (buffer-or-name function)
+      "在帮助缓冲区中添加移除 advice 的按钮"
+      (with-current-buffer buffer-or-name
+        (save-excursion
+          (goto-char (point-min))
+          (let ((ad-list (function-advices function)))
+            (while (re-search-forward
+                    "^\\(?:This function has \\)?:[-a-z]+ advice: \\(.+\\)$" nil t)
+              (when-let* ((advice (pop ad-list)))
+                (add-remove-advice-button advice function)))))))
+
+    (define-advice describe-function-1 (:after (function) advice-remove-button)
+      (add-button-to-remove-advice (help-buffer) function))
+
+    (with-eval-after-load 'helpful
+      (define-advice helpful-update (:after () advice-remove-button)
+        (when helpful--callable-p
+          (add-button-to-remove-advice (current-buffer) helpful--sym))))
+
+    (defun remove-hook-at-point ()
+      "在 *Help* 缓冲区中移除光标处的 hook"
+      (interactive)
+      (unless (memq major-mode '(help-mode helpful-mode))
+        (error "仅适用于 help-mode 或 helpful-mode"))
+      (let ((orig-point (point)))
+        (save-excursion
+          (when-let* ((hook (progn (goto-char (point-min)) (symbol-at-point)))
+                      (func (when (and (or (re-search-forward "^Value:?[\s|\n]" nil t)
+                                           (goto-char orig-point))
+                                       (sexp-at-point))
+                              (end-of-sexp)
+                              (backward-char 1)
+                              (catch 'break
+                                (while t
+                                  (condition-case nil
+                                      (backward-sexp)
+                                    (scan-error (throw 'break nil)))
+                                  (when-let* ((bounds (bounds-of-thing-at-point 'sexp)))
+                                    (when (<= (car bounds) orig-point (cdr bounds))
+                                      (throw 'break (sexp-at-point)))))))))
+            (when (yes-or-no-p (format "Remove %s from %s? " func hook))
+              (remove-hook hook func)
+              (if (eq major-mode 'helpful-mode)
+                  (helpful-update)
+                (revert-buffer nil t))))))))
+
+  (use-package macrostep
+    :ensure t
+    :bind ((:map emacs-lisp-mode-map ("C-c e" . macrostep-expand))
+           (:map lisp-interaction-mode-map ("C-c e" . macrostep-expand))))
+#+end_src
+*** Format-all
+#+begin_src emacs-lisp
+(use-package format-all
+  :ensure t
+  :defer t
+  :diminish
+  :hook ((LaTeX-mode python-ts-mode c-mode) . format-all-mode)
+  :init
+  (setq format-all-show-errors 'never)
+  :config
+  (setq format-all-default-formatters
+        '(("LaTeX" auctex)
+          ("Emacs Lisp" emacs-lisp)
+          ("C" astyle)
+          ("Python" ruff)
+          ("BibTeX" emacs-bibtex))))
+(add-hook 'format-all-mode-hook #'format-all-ensure-formatter)
+#+end_src
+*** Eglot
+#+begin_src emacs-lisp
+(use-package eglot
+  :ensure nil  ;; Emacs 29+ 内置
+  :defer t
+  :hook ((python-ts-mode . eglot-ensure)
+         (ess-r-mode . eglot-ensure)
+         (inferior-ess-r-mode . eglot-ensure))
+  :init
+  (setq eglot-extend-to-xref t
+        eglot-events-buffer-config 0          ;; 禁用事件日志（关键）
+        eglot-sync-connect nil              ;; 异步连接
+        eglot-autoshutdown t                ;; 自动关闭无用服务器
+        eglot-send-changes-idle-time 0.5   ;; 延迟发送更改
+        eglot-report-progress nil)
+  :config
+  (add-to-list 'eglot-server-programs
+               '(python-ts-mode . ("ty" "server")))
+  ;; 配置 R 语言服务器
+  (add-to-list 'eglot-server-programs
+               '(ess-r-mode . ("R" "--slave" "-e"
+                               "languageserver::run()")))
+  ;; 语言服务器配置选项
+  (setq-default eglot-workspace-configuration
+                '(:python
+                  (:basedpyright
+                   (:typeCheckingMode "basic"        ;; 降低类型检查强度
+                    :useLibraryCodeForTypes nil      ;; 不分析库代码
+                    :diagnostics
+                    (:enableExperimentalFeatures nil)))
+                  :r
+                  (:lsp
+                   (:diagnostics nil                 ;; 禁用诊断
+                    :debug nil
+                    :logLevel "error"
+                    :rich_documentation t
+                    :snippet_support t
+                    :max_completions 100             ;; 降低补全数量
+                    :lint_cache t))))
+  :bind (:map eglot-mode-map
+         ("C-c l r" . eglot-rename)
+         ("C-c l a" . eglot-code-actions)
+         ("C-c l d" . eldoc-doc-buffer)))
+;;; Flymake - 与 eglot 配合使用
+(use-package flymake
+  :ensure nil  ;; 内置
+  :defer t
+  :hook ((python-ts-mode ess-r-mode) . flymake-mode)
+  :custom
+  (flymake-start-on-flymake-mode nil)
+  (flymake-no-changes-timeout 0.5)  ;; 延迟检查
+  (flymake-start-on-save-buffer t)
+  :bind (:map flymake-mode-map
+         ("C-c ! n" . flymake-goto-next-error)
+         ("C-c ! p" . flymake-goto-prev-error)
+         ("C-c ! l" . flymake-show-buffer-diagnostics)))
+#+end_src
+*** 编程模式通用设置
+#+begin_src emacs-lisp
+  (use-package rainbow-delimiters
+    :ensure t
+    :hook (prog-mode . rainbow-delimiters-mode)
+    :config
+    (setq rainbow-delimiters-max-face-count 5))
+  (use-package prog-mode
+    :hook (prog-mode . display-fill-column-indicator-mode))
+  (use-package indent-bars
+    :ensure t
+    :hook (python-ts-mode . indent-bars-mode))
+  (use-package helpful
+    :ensure t
+    :bind (([remap describe-function] . helpful-callable)
+           ([remap describe-command] . helpful-command)
+           ([remap describe-variable] . helpful-variable)
+           ([remap describe-key] . helpful-key)
+           ([remap describe-symbol] . helpful-symbol)
+           :map emacs-lisp-mode-map ("C-c C-d" . helpful-at-point)
+           :map lisp-interaction-mode-map ("C-c C-d" . helpful-at-point)
+           :map helpful-mode-map ("r" . remove-hook-at-point))
+    :hook (helpful-mode . cursor-sensor-mode)
+    :init
+    (with-eval-after-load 'apropos
+      (dolist (fun-bt '(apropos-function apropos-macro apropos-command))
+        (button-type-put fun-bt 'action
+                         (lambda (button)
+                           (helpful-callable (button-get button 'apropos-symbol)))))
+      (dolist (var-bt '(apropos-variable apropos-user-option))
+        (button-type-put var-bt 'action
+                         (lambda (button)
+                           (helpful-variable (button-get button 'apropos-symbol))))))
+    :config
+    (defun my/helpful--navigate (button)
+      "导航到 BUTTON 代表的路径"
+      (find-file-other-window (substring-no-properties (button-get button 'path)))
+      (when-let* ((pos (get-text-property button 'position (marker-buffer button))))
+        (helpful--goto-char-widen pos)))
+
+    (advice-add #'helpful--navigate :override #'my/helpful--navigate))
+
+  (use-package magit
+    :ensure t
+    :hook (git-commit-setup . git-commit-turn-on-flyspell)
+    :bind (("C-x g" . magit-status)
+           ("C-x M-g" . magit-dispatch)
+           ("C-c M-g" . magit-file-dispatch))
+    :custom
+    (magit-diff-refine-hunk t)
+    (magit-diff-paint-whitespace nil)
+    (magit-ediff-dwim-show-on-hunks t))
+(use-package gptel-magit
+  :ensure t
+  :hook (magit-mode . gptel-magit-install))
+#+end_src
+** LaTeX 配置
 *** LaTeX Pretty Symbols
-
 #+begin_src emacs-lisp
 (add-hook 'prettify-symbols-mode-hook
           (defun prettify-symbols-latex-symbols ()
@@ -2155,7 +2285,7 @@
                                                  ("\\nabla" . 8711)))))
 #+end_src
 
-*** Lazytab (Org 表格 + LaTeX)
+*** Lazytab
 
 #+begin_src emacs-lisp
 (use-package lazytab
@@ -2377,354 +2507,66 @@
   ;; doc-view 遇到 PDF 会调用 doc-view-mode；我们用 pdf-view-mode 接管
   (setq doc-view-mode-hook nil))
 #+end_src
-** 编程语言
-*** Org-babel配置文件
+*** 文献管理与引用
+**** Bibtex配置
 #+begin_src emacs-lisp
-(with-eval-after-load 'org
-  (org-babel-do-load-languages
-   'org-babel-load-languages
-   '((python . t))))
 
-(use-package elisp-mode
-  :ensure nil
-  :bind (:map emacs-lisp-mode-map
-         ("C-c C-x" . ielm)
-         ("C-c C-c" . eval-defun)
-         ("C-c C-b" . eval-buffer))
-  :config
-  (defun my/lisp-indent-function (indent-point state)
-    "改进的 Lisp 缩进函数"
-    (let ((normal-indent (current-column))
-          (orig-point (point)))
-      (goto-char (1+ (elt state 1)))
-      (parse-partial-sexp (point) calculate-lisp-indent-last-sexp 0 t)
-      (cond
-       ((and (elt state 2)
-             (or (not (looking-at "\\sw\\|\\s_"))
-                 (looking-at ":")))
-        (unless (> (save-excursion (forward-line 1) (point))
-                   calculate-lisp-indent-last-sexp)
-          (goto-char calculate-lisp-indent-last-sexp)
-          (beginning-of-line)
-          (parse-partial-sexp (point) calculate-lisp-indent-last-sexp 0 t))
-        (backward-prefix-chars)
-        (current-column))
-       ((and (save-excursion
-               (goto-char indent-point)
-               (skip-syntax-forward " ")
-               (not (looking-at ":")))
-             (save-excursion
-               (goto-char orig-point)
-               (looking-at ":")))
-        (save-excursion
-          (goto-char (+ 2 (elt state 1)))
-          (current-column)))
-       (t
-        (let* ((function (buffer-substring (point)
-                                           (progn (forward-sexp 1) (point))))
-               (method (or (function-get (intern-soft function)
-                                         'lisp-indent-function)
-                           (get (intern-soft function) 'lisp-indent-hook))))
-          (cond ((or (eq method 'defun)
-                     (and (null method)
-                          (length> function 3)
-                          (string-match "\\`def" function)))
-                 (lisp-indent-defform state indent-point))
-                ((integerp method)
-                 (lisp-indent-specform method state indent-point normal-indent))
-                (method
-                 (funcall method indent-point state))))))))
-
-  (add-hook 'emacs-lisp-mode-hook
-            (lambda () (setq-local lisp-indent-function #'my/lisp-indent-function)))
-
-  (add-hook 'help-mode-hook #'cursor-sensor-mode)
-
-  (defun function-advices (function)
-    "返回 FUNCTION 的所有 advice"
-    (let ((flist (indirect-function function)) advices)
-      (while (advice--p flist)
-        (push (advice--car flist) advices)
-        (setq flist (advice--cdr flist)))
-      (nreverse advices)))
-
-  (defun add-remove-advice-button (advice function)
-    "为 ADVICE 添加移除按钮"
-    (when (and (functionp advice) (functionp function))
-      (let ((inhibit-read-only t)
-            (msg (format "Remove advice `%s'" advice)))
-        (insert "\t")
-        (insert-button
-         "Remove"
-         'face 'custom-button
-         'cursor-sensor-functions `((lambda (&rest _) (message ,msg)))
-         'help-echo msg
-         'action (lambda (_)
-                   (when (yes-or-no-p msg)
-                     (message "%s from function `%s'" msg function)
-                     (advice-remove function advice)
-                     (if (eq major-mode 'helpful-mode)
-                         (helpful-update)
-                       (revert-buffer nil t))))
-         'follow-link t))))
-
-  (defun add-button-to-remove-advice (buffer-or-name function)
-    "在帮助缓冲区中添加移除 advice 的按钮"
-    (with-current-buffer buffer-or-name
-      (save-excursion
-        (goto-char (point-min))
-        (let ((ad-list (function-advices function)))
-          (while (re-search-forward
-                  "^\\(?:This function has \\)?:[-a-z]+ advice: \\(.+\\)$" nil t)
-            (when-let* ((advice (pop ad-list)))
-              (add-remove-advice-button advice function)))))))
-
-  (define-advice describe-function-1 (:after (function) advice-remove-button)
-    (add-button-to-remove-advice (help-buffer) function))
-
-  (with-eval-after-load 'helpful
-    (define-advice helpful-update (:after () advice-remove-button)
-      (when helpful--callable-p
-        (add-button-to-remove-advice (current-buffer) helpful--sym))))
-
-  (defun remove-hook-at-point ()
-    "在 *Help* 缓冲区中移除光标处的 hook"
-    (interactive)
-    (unless (memq major-mode '(help-mode helpful-mode))
-      (error "仅适用于 help-mode 或 helpful-mode"))
-    (let ((orig-point (point)))
-      (save-excursion
-        (when-let* ((hook (progn (goto-char (point-min)) (symbol-at-point)))
-                    (func (when (and (or (re-search-forward "^Value:?[\s|\n]" nil t)
-                                         (goto-char orig-point))
-                                     (sexp-at-point))
-                            (end-of-sexp)
-                            (backward-char 1)
-                            (catch 'break
-                              (while t
-                                (condition-case nil
-                                    (backward-sexp)
-                                  (scan-error (throw 'break nil)))
-                                (when-let* ((bounds (bounds-of-thing-at-point 'sexp)))
-                                  (when (<= (car bounds) orig-point (cdr bounds))
-                                    (throw 'break (sexp-at-point)))))))))
-          (when (yes-or-no-p (format "Remove %s from %s? " func hook))
-            (remove-hook hook func)
-            (if (eq major-mode 'helpful-mode)
-                (helpful-update)
-              (revert-buffer nil t)))))))
-  (bind-key "r" #'remove-hook-at-point help-mode-map))
-
-(use-package macrostep
-  :ensure t
-  :bind ((:map emacs-lisp-mode-map ("C-c e" . macrostep-expand))
-         (:map lisp-interaction-mode-map ("C-c e" . macrostep-expand))))
-
-(use-package helpful
-  :ensure t
-  :bind (([remap describe-function] . helpful-callable)
-         ([remap describe-command] . helpful-command)
-         ([remap describe-variable] . helpful-variable)
-         ([remap describe-key] . helpful-key)
-         ([remap describe-symbol] . helpful-symbol)
-         :map emacs-lisp-mode-map ("C-c C-d" . helpful-at-point)
-         :map lisp-interaction-mode-map ("C-c C-d" . helpful-at-point)
-         :map helpful-mode-map ("r" . remove-hook-at-point))
-  :hook (helpful-mode . cursor-sensor-mode)
-  :init
-  (with-eval-after-load 'apropos
-    (dolist (fun-bt '(apropos-function apropos-macro apropos-command))
-      (button-type-put fun-bt 'action
-                       (lambda (button)
-                         (helpful-callable (button-get button 'apropos-symbol)))))
-    (dolist (var-bt '(apropos-variable apropos-user-option))
-      (button-type-put var-bt 'action
-                       (lambda (button)
-                         (helpful-variable (button-get button 'apropos-symbol))))))
-  :config
-  (defun my/helpful--navigate (button)
-    "导航到 BUTTON 代表的路径"
-    (find-file-other-window (substring-no-properties (button-get button 'path)))
-    (when-let* ((pos (get-text-property button 'position (marker-buffer button))))
-      (helpful--goto-char-widen pos)))
-
-  (advice-add #'helpful--navigate :override #'my/helpful--navigate))
-
-;; Tree-sitter 核心配置
-;;; ========== Tree-sitter 配置（优化版）==========
-
-(use-package treesit
+(use-package bibtex
   :ensure nil
   :defer t
+  :mode ("\\.bib\\'" . bibtex-mode)
   :custom
-  (treesit-extra-load-path (list (expand-file-name "etc/tree-sitter" user-emacs-directory)))
-  ;; 语法源列表
-  (treesit-language-source-alist
-   '((python "https://github.com/tree-sitter/tree-sitter-python")
-     (elisp "https://github.com/Wilfred/tree-sitter-elisp")
-     (markdown "https://github.com/ikatyang/tree-sitter-markdown"))))
+  (bibtex-dialect 'biblatex)  ;; 使用 BibLaTeX 格式
+  (bibtex-user-optional-fields
+   '(("keywords" "关键词，用逗号分隔")
+     ("file" "PDF 文件路径")
+     ("doi" "DOI")
+     ("url" "在线链接")))
+  (bibtex-align-at-equal-sign t)
+  (bibtex-autokey-year-length 4)
+  (bibtex-autokey-name-year-separator "")
+  (bibtex-autokey-year-title-separator "")
+  (bibtex-autokey-titleword-length 5)
+  (bibtex-autokey-titlewords 3)
+  :bind (:map bibtex-mode-map
+         ("C-c C-c" . bibtex-clean-entry)))
 #+end_src
-*** Python的配置
+
+**** RefTeX
 #+begin_src emacs-lisp
-;;; Python
-(use-package python
-  :defer t
-  :mode ("\\.py\\'" . python-ts-mode)
-  :init
-  (setq
-   python-indent-offset 4
-   ;;python-flymake-command ruff
-   python-shell-interpreter "python"
-   python-shell-completion-native-enable nil)
-  :hook
-  (python-ts-mode . my/uv-auto-activate)
-  (python-ts-mode . display-line-numbers-mode)
-  (python-ts-mode . (lambda ()
-                      (remove-hook 'flymake-diagnostic-functions
-                                   'python-flymake t)))
-  :config
-  ;; 如果使用 lsp-mode 的 ruff-lsp
-
-  ;; 记录已激活的项目，避免重复激活
-  (defvar my/uv-activated-projects nil
-    "已激活 UV 环境的项目列表")
-  (defun my/uv-auto-activate ()
-    "打开 Python 文件时自动激活 UV 环境"
-    (when-let* ((proj (project-current))
-                (root (project-root proj)))
-      (unless (member root my/uv-activated-projects)
-        (condition-case err
-            (progn
-              (my/uv-activate)
-              (push root my/uv-activated-projects))
-          (error
-           ;; 静默失败，不影响文件打开
-           (message "No UV environment found, using system Python"))))))
-
-  (defun my/uv-activate ()
-    "Activate Python environment managed by uv"
-    (interactive)
-    (let* ((project-root (project-root (project-current t)))
-           (venv-path (expand-file-name ".venv" project-root))
-           (python-path (expand-file-name
-                         (if (eq system-type 'windows-nt)
-                             "Scripts/python.exe"
-                           "bin/python")
-                         venv-path)))
-      (if (file-exists-p python-path)
-          (progn
-            (setq python-shell-interpreter python-path)
-            (let ((venv-bin-dir (file-name-directory python-path)))
-              (setq exec-path (cons venv-bin-dir
-                                    (remove venv-bin-dir exec-path))))
-            (setenv "PATH" (concat (file-name-directory python-path)
-                                   path-separator
-                                   (getenv "PATH")))
-            (setenv "VIRTUAL_ENV" venv-path)
-            (setenv "PYTHONHOME" nil)
-            (message "Activated UV environment: %s"
-                     (file-name-nondirectory
-                      (directory-file-name project-root))))
-        (error "No UV Python environment found in %s" project-root)))))
-;; Flymake-ruff（语法检查）
-(use-package flymake-ruff
-  :ensure t
-  :defer t
-  :hook (python-ts-mode . flymake-ruff-load))
-#+end_src
-*** R 
-#+BEGIN_SRC emacs-lisp
-;;; ESS - R 语言支持
-(use-package ess
-  :ensure t
-  :defer t
-  :mode (("\\.R\\'" . R-mode)
-         ("\\.r\\'" . R-mode)
-         ("\\.Rmd\\'" . poly-markdown+r-mode))  ;; 如果使用 R Markdown
-  :hook
-  ((ess-r-mode . eglot-ensure)          ;; 自动启动 eglot
-   (inferior-ess-r-mode . (lambda ()     ;; R 控制台配置
-                            (setq-local comint-scroll-to-bottom-on-input t)
-                            (setq-local comint-scroll-to-bottom-on-output t)
-                            (setq-local comint-move-point-for-output t))))
-  :init
-  ;; 性能优化
-  (setq ess-use-flymake nil              ;; 禁用 ESS 自带的 flymake
-        ess-use-eldoc 'script-only       ;; 只在脚本中使用 eldoc
-        ess-eldoc-show-on-symbol nil     ;; 禁用符号上的 eldoc
-        ess-startup-directory 'default-directory
-        ess-ask-for-ess-directory nil)
-
-  :custom
-  ;; R 进程配置
-  (ess-indent-offset 2)
-  (ess-style 'RStudio)                   ;; 使用 RStudio 风格缩进
-  (ess-offset-continued 2)
-  (ess-expression-offset 2)
-  (ess-nuke-trailing-whitespace-p t)     ;; 删除行尾空格
-  (ess-default-style 'RStudio)
-
-  ;; R 交互配置
-  (inferior-R-args "--no-save --no-restore")
-  (ess-R-font-lock-keywords
-   '((ess-R-fl-keyword:keywords . t)
-     (ess-R-fl-keyword:constants . t)
-     (ess-R-fl-keyword:modifiers . t)
-     (ess-R-fl-keyword:fun-defs . t)
-     (ess-R-fl-keyword:assign-ops . t)
-     (ess-R-fl-keyword:%op% . t)
-     (ess-fl-keyword:fun-calls . t)
-     (ess-fl-keyword:numbers . t)
-     (ess-fl-keyword:operators . t)
-     (ess-fl-keyword:delimiters . t)
-     (ess-fl-keyword:= . t)
-     (ess-R-fl-keyword:F&T . t))))
-
-;;; Poly-mode - R Markdown 支持
-(use-package polymode
-  :ensure t
-  :defer t)
-
-(use-package poly-markdown
-  :ensure t
-  :defer t)
-
-(use-package poly-R
-  :ensure t
-  :defer t
-  :mode ("\\.Rmd\\'" . poly-markdown+r-mode)
-  :config
-  ;; 在 R Markdown 中启用 eglot
-  (add-hook 'poly-markdown+r-mode-hook
-            (lambda ()
-              (when (derived-mode-p 'ess-r-mode)
-                (eglot-ensure)))))
-;; 定期清理 R 进程
-(defun my/ess-cleanup-old-processes ()
-  "Kill idle R processes older than 1 hour"
-  (dolist (proc (process-list))
-    (when (and (string-match-p "^R:" (process-name proc))
-               (> (float-time (time-since (process-get proc 'last-activity)))
-                  3600))
-      (delete-process proc))))
-
-(run-with-idle-timer 1800 t #'my/ess-cleanup-old-processes)
-
-#+end_src
-*** 编程模式通用设置
-#+begin_src emacs-lisp
-  (use-package rainbow-delimiters
-    :ensure t
-    :hook (prog-mode . rainbow-delimiters-mode)
+  (use-package reftex
+    :defer t
+    :hook ((LaTeX-mode . turn-on-reftex)
+           (org-mode . turn-on-reftex))
     :config
-    (setq rainbow-delimiters-max-face-count 5))
-  (use-package prog-mode
-    :hook ((prog-mode LaTeX-mode org-mode) . display-fill-column-indicator-mode))
-  (use-package indent-bars
-    :ensure t
-    :hook ((python-ts-mode yaml-mode) . indent-bars-mode)) ; or whichever modes you prefer
-#+end_src
+    (setq reftex-plug-into-AUCTeX t
+          reftex-cite-format 'biblatex))
 
+  (use-package eldoc
+    :after (eglot)
+    :bind
+    (:map eglot-mode-map ("C-c C-d" . eldoc))
+    :config
+    (setq eldoc-idle-delay 0.1)
+
+    ;; 打开 eldoc-buffer 时关闭 echo-area 显示, eldoc-buffer 会跟随显示 hover 信息, 如
+    ;; 函数签名。
+    (setq eldoc-echo-area-prefer-doc-buffer t)
+
+    ;; 在屏幕右侧显示 eldoc-buffer
+    (add-to-list 'display-buffer-alist
+                 '("^\\*eldoc.*\\*"
+                   (display-buffer-reuse-window display-buffer-in-side-window)
+                   (dedicated . t)
+                   (side . right)
+                   (inhibit-same-window . t)))
+
+    ;; 将 minibuffer 窗口高度设为 1，可以确保只显示一行（默认为小数，表示 frame 高度占
+    ;; 比，会导致显示多行）。
+    (setq max-mini-window-height 1)
+    ;; 为 nil 时只单行显示 eldoc 信息.
+    (setq eldoc-echo-area-use-multiline-p nil))
+#+end_src 
 ** 工具集成
 *** Emacs 集成 GPG
 #+begin_src emacs-lisp
@@ -2733,23 +2575,18 @@
   :ensure nil  ;; Emacs 内置
   :config
   (epa-file-enable)
-  ;; ========== 密码缓存（可选）==========
-  ;; 避免频繁输入密码，缓存 10 分钟
   (setq epa-file-cache-passphrase-for-symmetric-encryption t
         epa-file-select-keys t  ;; 自动选择密钥
         epg-pinentry-mode 'loopback))  ;; 在 minibuffer 输入密码
-;;; ========== Auth-source 配置 ==========
 (use-package auth-source
   :ensure nil
   :config
-  (setq auth-sources (list(locate-user-emacs-file "authinfo.gpg")))  ;; 指定加密文件
-  (setq auth-source-cache-expiry nil))  ;; 永不过期
+  (setq auth-sources (list(locate-user-emacs-file "authinfo.gpg")))
+  (setq auth-source-cache-expiry nil))
 #+end_src
 *** GPTel
 #+begin_src emacs-lisp
-(defvar my/gptel-cache-dir (locate-user-emacs-file "etc/gptel/"))
-(unless (file-directory-p my/gptel-cache-dir)
-  (make-directory my/gptel-cache-dir t))
+
 (use-package gptel
   :ensure t
   :commands (gptel gptel-send gptel-menu gptel-abort)
@@ -2763,8 +2600,6 @@
           :endpoint "/compatible-mode/v1/chat/completions"
           :stream t
           :key #'gptel-api-key-from-auth-source
-          ;;(auth-source-pick-first-password :host "dashscope.aliyuncs.com" :user "dashscope")
-          ;;"sk-0e8850453d3543a895b0393acab5128b"
           :models '(qwen-max qwen-plus qwen-turbo kimi-k2-thinking)))
   :bind (("C-c C-<return>" . gptel-menu)
          ("C-c <return>" . gptel-send)
@@ -2780,7 +2615,6 @@
    '((markdown-mode . "")
      (org-mode . "")
      (text-mode . ""))))
-
 (defun replace-and-trim-latex (&rest _)
   "将 LaTeX 分隔符替换为 $, $$"
   (save-excursion
@@ -2800,11 +2634,9 @@
 #+end_src
 
 *** Persistent Scratch
-
 #+begin_src emacs-lisp
 (use-package diminish
   :ensure t)
-
 (use-package persistent-scratch
   :ensure t
   :diminish
@@ -2825,30 +2657,11 @@
 #+end_src
 
 *** Transient 配置
-
 #+begin_src emacs-lisp
 (setq transient-levels-file (locate-user-emacs-file "etc/transient/levels.el")
       transient-values-file (locate-user-emacs-file "etc/transient/values.el")
       transient-history-file (locate-user-emacs-file "etc/transient/history.el"))
 #+end_src
-
-*** Ripgrep
-
-#+begin_src emacs-lisp
-(use-package rg
-  :ensure t
-  :hook (after-init . rg-enable-default-bindings)
-  :bind (:map rg-global-map
-         ("c" . rg-dwim-current-dir)
-         ("f" . rg-dwim-current-file)
-         ("m" . rg-menu))
-  :init
-  (setq rg-group-result t
-        rg-show-columns t)
-  :config
-  (cl-pushnew '("tmpl" . "*.tmpl") rg-custom-type-aliases))
-#+end_src
-
 *** Vundo
 #+begin_src emacs-lisp
 (use-package vundo
@@ -2858,84 +2671,7 @@
   (setq vundo-glyph-alist vundo-unicode-symbols))
 #+end_src
 
-*** Magit
-
-#+begin_src emacs-lisp
-  (use-package magit
-    :ensure t
-    :hook (git-commit-setup . git-commit-turn-on-flyspell)
-    :bind (("C-x g" . magit-status)
-           ("C-x M-g" . magit-dispatch)
-           ("C-c M-g" . magit-file-dispatch))
-    :custom
-    (magit-diff-refine-hunk t)
-    (magit-diff-paint-whitespace nil)
-    (magit-ediff-dwim-show-on-hunks t))
-
-(use-package gptel-magit
-  :ensure t
-  :hook (magit-mode . gptel-magit-install))
-
-(use-package markdown-mode
-  :ensure t
-  :defer t
-  :mode (("README\\.md\\'" . gfm-mode)
-         ("\\.md\\'" . markdown-mode)
-         ("\\.markdown\\'" . markdown-mode))
-  :hook ((markdown-mode . visual-line-mode)
-         (markdown-mode . display-fill-column-indicator-mode))
-  :bind (:map markdown-mode-map
-         ("C-c C-c p" . markdown-preview)
-         ("C-c C-e" . markdown-export)
-         ("C-c C-l" . markdown-insert-link)
-         ("C-c C-i" . markdown-insert-image)
-         ("C-c C-`" . my/markdown-insert-code-block)
-         ("C-c M-w" . my/markdown-copy-as-html))
-  :custom
-  (markdown-command "pandoc")
-  (markdown-fontify-code-blocks-natively t)
-  (markdown-enable-math t)
-  (markdown-header-scaling t)
-  (markdown-header-scaling-values '(1.3 1.2 1.1 1.0 1.0 1.0))
-  :custom-face
-  (markdown-header-face-1 ((t (:height 1.3 :weight bold))))
-  (markdown-header-face-2 ((t (:height 1.2 :weight bold))))
-  (markdown-code-face ((t (:background "#2e3440"))))
-  :config
-  (defun my/markdown-insert-code-block ()
-    (interactive)
-    (let ((lang (completing-read "Language: "
-                                 '("python" "elisp" "bash" "c" "cpp" "java"
-                                   "javascript" "json" "html" "css" "sql"))))
-      (insert (format "```%s\n\n```" lang))
-      (forward-line -1)))
-  
-  (defun my/markdown-copy-as-html ()
-    (interactive)
-    (if (use-region-p)
-        (let* ((text (buffer-substring-no-properties (region-beginning) (region-end)))
-               (html (with-temp-buffer
-                       (insert text)
-                       (markdown-mode)
-                       (markdown-export-to-html)
-                       (with-current-buffer markdown-output-buffer-name
-                         (buffer-string)))))
-          (kill-new html)
-          (message "HTML 已复制到剪贴板"))
-      (message "请先选中文本"))))
-
-(use-package markdown-toc
-  :ensure t
-  :defer t
-  :after markdown-mode
-  :bind (:map markdown-mode-map
-         ("C-c C-t" . markdown-toc-generate-or-refresh-toc))
-  :custom
-  (markdown-toc-header-toc-title "## 目录"))
-
-#+end_src
-** 日历配置
-
+*** 日历配置
 #+begin_src emacs-lisp
   (use-package cal-china-x
     :ensure t
@@ -2961,7 +2697,6 @@
           calendar-holidays (append cal-china-x-important-holidays
                                     cal-china-x-general-holidays
                                     holiday-other-holidays)))
-
 ;;; init.el ends here
 #+end_src
 

@@ -1206,7 +1206,6 @@ Missing ones are created once; this function removes itself from
 *** Org-mode 核心配置
 #+begin_src emacs-lisp
 (use-package org
-  :vc (org-mode :url "https://git.tecosaur.net/tec/org-mode.git" :branch "dev")
   :diminish
   :defer t
   :mode ("\\.org\\'" . org-mode)
@@ -2007,11 +2006,6 @@ Missing ones are created once; this function removes itself from
             (if (eq major-mode 'helpful-mode)
                 (helpful-update)
               (revert-buffer nil t))))))))
-
-(use-package macrostep
-  :ensure t
-  :bind ((:map emacs-lisp-mode-map ("C-c e" . macrostep-expand))
-         (:map lisp-interaction-mode-map ("C-c e" . macrostep-expand))))
 #+end_src
 *** Treesit配置
 #+BEGIN_SRC emacs-lisp
@@ -2040,8 +2034,7 @@ Missing ones are created once; this function removes itself from
         '(("LaTeX" auctex)
           ("Emacs Lisp" emacs-lisp)
           ("C" astyle)
-          ("R" (air "format"))
-          ;;("R" styler)
+          ("R" styler)
           ("Python" ruff)
           ("BibTeX" emacs-bibtex))))
 (add-hook 'format-all-mode-hook #'format-all-ensure-formatter)

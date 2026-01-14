@@ -827,6 +827,12 @@ Missing ones are created once; this function removes itself from
               (modify-syntax-entry ?_ "w")))
 
   :config
+  ;; 将 Git for Windows 的 usr\bin 目录添加到执行路径
+  (add-to-list 'exec-path "D:/Apps/Scoop/apps/git/current/usr/bin/")
+  ;; 可选：同时添加 mingw64\bin 目录以确保万无一失
+  (add-to-list 'exec-path "D:/Apps/Scoop/apps/git/current/mingw64/bin/")
+  ;; 此外，可以将该目录添加到系统的 PATH 环境变量前段
+  (setenv "PATH" (concat "D:\\Apps\\Scoop\\apps\\git\\current\\usr\\bin;" (getenv "PATH")))
   ;; ------------------------------------------------------------------
   ;; Turn on window-divider mode and hide the pixels
   ;; ------------------------------------------------------------------
@@ -968,16 +974,16 @@ Missing ones are created once; this function removes itself from
 #+end_src
 *** 智能行首行尾移动
 #+begin_src emacs-lisp
-  (use-package mwim
-    :ensure t
-    :bind (([remap move-beginning-of-line] . mwim-beginning)
-           ([remap move-end-of-line] . mwim-end)))
+(use-package mwim
+  :ensure t
+  :bind (([remap move-beginning-of-line] . mwim-beginning)
+         ([remap move-end-of-line] . mwim-end)))
 #+end_src
 *** 长行处理
 #+begin_src emacs-lisp
-  (use-package so-long
-    :ensure t
-    :hook (after-init . global-so-long-mode))
+(use-package so-long
+  :ensure t
+  :hook (after-init . global-so-long-mode))
 #+end_src
 *** Hideshow
 #+BEGIN_SRC emacs-lisp
@@ -1055,9 +1061,9 @@ Missing ones are created once; this function removes itself from
   :ensure t
   :hook (after-init . vertico-mode)
   :bind (:map vertico-map
-              ("RET"   . vertico-directory-enter)      ; enter directory
-              ("DEL"   . vertico-directory-delete-char) ; delete char or go up dir
-              ("M-DEL" . vertico-directory-delete-word)) ; delete word
+         ("RET"   . vertico-directory-enter)      ; enter directory
+         ("DEL"   . vertico-directory-delete-char) ; delete char or go up dir
+         ("M-DEL" . vertico-directory-delete-word)) ; delete word
   :custom
   (vertico-count 15)                ; 15 candidates visible
   (vertico-cycle t)                 ; wrap around
@@ -1492,7 +1498,7 @@ Missing ones are created once; this function removes itself from
 (use-package dired
   :ensure nil
   :bind (:map dired-mode-map
-              ("C-c C-p" . wdired-change-to-wdired-mode)) ; quick-edit filenames
+         ("C-c C-p" . wdired-change-to-wdired-mode)) ; quick-edit filenames
   :custom
   ;; ------------------------------------------------------------------
   ;; Smart copy/move destination: auto-pick dir in other window
@@ -1540,7 +1546,7 @@ Missing ones are created once; this function removes itself from
   :ensure t
   :when (executable-find "fd")
   :bind (:map dired-mode-map
-              ("C-c f" . fd-dired)))
+         ("C-c f" . fd-dired)))
 #+end_src
 
 *** Ripgrep
@@ -1552,9 +1558,9 @@ Missing ones are created once; this function removes itself from
 
   ;; Quick-access keys (after C-c s)
   :bind (:map rg-global-map
-              ("c" . rg-dwim-current-dir)   ; search in current directory
-              ("f" . rg-dwim-current-file)  ; search in current buffer's file
-              ("m" . rg-menu))              ; open interactive menu
+         ("c" . rg-dwim-current-dir)   ; search in current directory
+         ("f" . rg-dwim-current-file)  ; search in current buffer's file
+         ("m" . rg-menu))              ; open interactive menu
 
   :init
   ;; Pretty results: group matches and show column numbers
@@ -2650,21 +2656,33 @@ Return absolute path."
 #+end_src
 *** Format-all
 #+begin_src emacs-lisp
-(use-package format-all
+(use-package apheleia
   :ensure t
-  :defer t
   :diminish
-  :hook ((LaTeX-mode python-ts-mode c-mode ess-r-mode) . format-all-mode)
-  :init
-  (setq format-all-show-errors 'never)
   :config
-  (setq format-all-formatters
-        '(("LaTeX" auctex)
-          ("Emacs Lisp" emacs-lisp)
-          ("C" astyle)
-          ("Python" ruff)
-          ("BibTeX" emacs-bibtex)))
-(add-hook 'format-all-mode-hook #'format-all-ensure-formatter))
+  (setf (alist-get 'astyle apheleia-formatters)
+        '("astyle" "--mode=c" "--suffix=none"))
+  ;; Python - Ruff 已内置,但需要修正 filepath 的引用方式
+  (setf (alist-get 'ruff apheleia-formatters)
+        '("ruff" "format" "--stdin-filename" filepath "-"))
+  ;; BibTeX - 需要添加
+  (setf (alist-get 'bibtex-tidy apheleia-formatters)
+        '("bibtex-tidy" "--stdin" "--stdout"))
+  ;; 配置air
+  (setf (alist-get 'air apheleia-formatters)
+        '("air" "format" filepath))
+  ;; 建立模式与formatter的映射
+  ;; 注意：是 LaTeX-mode 不是 latex-mode (首字母大写)
+  (setf (alist-get 'LaTeX-mode apheleia-mode-alist) 'latexindent)
+  (setf (alist-get 'python-ts-mode apheleia-mode-alist) 'ruff)
+  (setf (alist-get 'python-mode apheleia-mode-alist) 'ruff)  ; 也支持普通 python-mode
+  (setf (alist-get 'c-mode apheleia-mode-alist) 'astyle)
+  (setf (alist-get 'c++-mode apheleia-mode-alist) 'astyle)
+  (setf (alist-get 'ess-r-mode apheleia-mode-alist) 'air)
+  ;; BibTeX mode
+  (setf (alist-get 'bibtex-mode apheleia-mode-alist) 'bibtex-tidy)
+  ;; 启用全局模式
+  (apheleia-global-mode +1))
 #+end_src
 *** eglot-mode
 #+begin_src emacs-lisp
@@ -2914,13 +2932,13 @@ Return absolute path."
                 (TeX-global-PDF-mode t)
                 (imenu-add-menubar-index)))))
 
-  (use-package preview
-    :after latex
-    :hook (LaTeX-mode . preview-larger-previews)
-    :config
-    (defun preview-larger-previews ()
-      (setq preview-scale-function
-            (lambda () (* 1.25 (funcall (preview-scale-from-face)))))))
+(use-package preview
+  :after latex
+  :hook (LaTeX-mode . preview-larger-previews)
+  :config
+  (defun preview-larger-previews ()
+    (setq preview-scale-function
+          (lambda () (* 1.25 (funcall (preview-scale-from-face)))))))
 ;;;CDLatex
 (use-package cdlatex
   :ensure t

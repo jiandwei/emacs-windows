@@ -90,24 +90,24 @@
   (unless (package-installed-p 'use-package)
     (package-install 'use-package))
   (eval-when-compile
-    (require 'use-package)
-    ;; Use USTC mirrors (China) for faster downloads.
-    (setq package-archives
-          '(("gnu"    . "https://mirrors.ustc.edu.cn/elpa/gnu/")
-            ("melpa"  . "https://mirrors.ustc.edu.cn/elpa/melpa/")
-            ("nongnu" . "https://mirrors.ustc.edu.cn/elpa/nongnu/")))
-    ;; Native-compile installed packages for better performance.
-    (setq package-native-compile t
-          ;; Allow upgrading packages that are built-in to Emacs.
-          package-install-upgrade-built-in t
-          ;; Do **not** auto-install missing packages (manual control).
-          use-package-always-ensure nil
-          ;; Defer loading by default unless `:demand' is specified.
-          use-package-always-defer t
-          ;; Generate minimal expansion code in the macro expansion.
-          use-package-expand-minimally t
-          ;; Disable post-startup statistics to reduce overhead.
-          use-package-compute-statistics nil)))
+    (require 'use-package))
+  ;; Use USTC mirrors (China) for faster downloads.
+  (setq package-archives
+        '(("gnu"    . "https://mirrors.ustc.edu.cn/elpa/gnu/")
+          ("melpa"  . "https://mirrors.ustc.edu.cn/elpa/melpa/")
+          ("nongnu" . "https://mirrors.ustc.edu.cn/elpa/nongnu/")))
+  ;; Native-compile installed packages for better performance.
+  (setq package-native-compile t
+        ;; Allow upgrading packages that are built-in to Emacs.
+        package-install-upgrade-built-in t
+        ;; Do **not** auto-install missing packages (manual control).
+        use-package-always-ensure nil
+        ;; Defer loading by default unless `:demand' is specified.
+        use-package-always-defer t
+        ;; Generate minimal expansion code in the macro expansion.
+        use-package-expand-minimally t
+        ;; Disable post-startup statistics to reduce overhead.
+        use-package-compute-statistics nil))
 #+END_SRC
 ** 内置行为与基础设置
 *** 核心设置
@@ -119,7 +119,7 @@
 ;; Process I/O optimisation ---------------------------------------------------
 ;; Increase the amount of data Emacs reads from subprocesses in one chunk
 ;; (64 KiB) to reduce context switches and boost throughput.
-(setq read-process-output-max #x10000)          ; 64 KB
+(setq read-process-output-max (* 1024 1024))          ; 1 MB
 
 ;; Disable FFAP domain detection ----------------------------------------------
 ;; Tell FFAP (Find File At Point) never to attempt remote machine lookups
@@ -134,9 +134,6 @@
 ;; Prioritise Unicode when multiple charsets match a character.
 (when (fboundp 'set-charset-priority)
   (set-charset-priority 'unicode))
-;; Make UTF-8 the default coding system for new files, processes, etc.
-(prefer-coding-system 'utf-8)
-(setq locale-coding-system 'utf-8)
 
 ;; 24-hour clock in modeline ---------------------------------------------------
 (setq display-time-24hr-format t)
@@ -737,8 +734,6 @@ Missing ones are created once; this function removes itself from
   ;; ------------------------------------------------------------------
   (setq-default bidi-paragraph-direction 'left-to-right)
   (setq bidi-inhibit-bpa t               ; disable UAX#9 algorithm
-        load-prefer-newer t              ; prefer newer elc files
-        inhibit-compacting-font-caches t ; keep font caches alive
         display-raw-bytes-as-hex t
         redisplay-skip-fontification-on-input t) ; stay responsive
 
@@ -761,8 +756,7 @@ Missing ones are created once; this function removes itself from
   ;; ------------------------------------------------------------------
   ;; Misc niceties
   ;; ------------------------------------------------------------------
-  (setq ring-bell-function 'ignore        ; silent bell
-        fill-column 80
+  (setq fill-column 80
         projectile-git-submodule-command nil ; faster project detection
         ;; Windows-specific I/O tweaks
         w32-get-true-file-attributes nil ; reduce stat calls
@@ -1313,26 +1307,22 @@ Missing ones are created once; this function removes itself from
         ;; disable ispell completion when Corfu is active
         text-mode-ispell-word-completion nil
         ispell-alternate-dictionary nil)
-
   ;; enable Corfu everywhere except listed modes
   (setq global-corfu-modes '((not erc-mode circe-mode help-mode
                                   org-mode gud-mode vterm-mode) t))
 
   :bind (:map corfu-map
-              ("<escape>" . corfu-quit)
-              ("TAB"      . corfu-next)
-              ([tab]      . corfu-next)
-              ("RET"      . corfu-complete)
-              ("S-TAB"    . corfu-previous)
-              ([backtab]  . corfu-previous))
-
+         ("<escape>" . corfu-quit)
+         ("TAB"      . corfu-next)
+         ([tab]      . corfu-next)
+         ("RET"      . corfu-complete)
+         ("S-TAB"    . corfu-previous)
+         ([backtab]  . corfu-previous))
   :hook ((after-init . global-corfu-mode)
          (global-corfu-mode . corfu-popupinfo-mode)
          (global-corfu-mode . corfu-history-mode))
-
   :custom-face
   (corfu-border ((t (:inherit region :background unspecified))))
-
   :config
   ;; quit completion before saving
   (add-hook 'before-save-hook #'corfu-quit)
@@ -1348,8 +1338,6 @@ Missing ones are created once; this function removes itself from
              (completion-cycle-threshold completion-cycling))
          (consult-completion-in-region beg end table pred)))))
   (add-to-list 'corfu-continue-commands #'corfu-move-to-minibuffer))
-
-
 ;; ------------------------------------------------------------------
 ;; Nerd-icons for Corfu margins
 ;; ------------------------------------------------------------------
@@ -1370,6 +1358,10 @@ Missing ones are created once; this function removes itself from
   ;; lightweight static backends
   (add-to-list 'completion-at-point-functions #'cape-dabbrev)
   (add-to-list 'completion-at-point-functions #'cape-file)
+  (add-hook 'org-mode-hook
+            (lambda ()
+              (setq-local completion-at-point-functions
+                          (delq 'yasnippet-capf completion-at-point-functions))))
   (add-hook 'emacs-lisp-mode-hook
             (lambda () (add-to-list 'completion-at-point-functions #'cape-elisp-block)))
   (add-to-list 'completion-at-point-functions #'cape-keyword))
@@ -1381,7 +1373,7 @@ Missing ones are created once; this function removes itself from
 (use-package yasnippet
   :ensure t
   :diminish
-  :hook ((LaTeX-mode python-ts-mode ess-r-mode poly-markdown+r-mode) . yas-minor-mode)
+  :hook ((LaTeX-mode python-ts-mode ess-r-mode ) . yas-minor-mode)
   :config
   (yas-reload-all)
   ;; silence backquote-change warning
@@ -1730,7 +1722,7 @@ Missing ones are created once; this function removes itself from
                  (visual-line-mode 1)           ; soft wrap long lines
                  (turn-on-org-cdlatex)          ; fast LaTeX math snippets
                  (yas-minor-mode 1)             ; snippets
-                 (my/add-latex-in-org-mode-expansions)
+                 ;;(my/add-latex-in-org-mode-expansions)
                  (my/org-indent-setup)
                  ;; one-time emphasis regexp optimisation
                  (my/org-optimize-emphasis-parsing)))
@@ -2413,6 +2405,7 @@ Return absolute path."
   (markdown-code-face ((t (:background "#2e3440")))))
 (use-package markdown-toc
   :ensure t
+  :hook (markdown-mode . markdown-toc-mode)
   :defer t
   :after markdown-mode
   :bind (:map markdown-mode-map
@@ -2468,9 +2461,9 @@ Return absolute path."
          ("\\.r\\'" . R-mode))
   :init
   ;; 性能优化配置
-  (setq ess-use-flymake nil
+  (setq ess-use-flymake t
         ess-use-eldoc 'script-only
-        ess-eldoc-show-on-symbol nil
+        ess-eldoc-show-on-symbol t
         ess-startup-directory 'default-directory
         ess-ask-for-ess-directory nil
         ess-indent-offset 2
@@ -2495,7 +2488,7 @@ Return absolute path."
   ;; Eglot 集成
   (with-eval-after-load 'eglot
     (add-to-list 'eglot-server-programs
-                 '((ess-r-mode) . ("air" "language-server"))))
+                 '((R-mode ess-r-mode) "R" "--no-echo" "-e" "languageserver::run()")))
   ;; 智能进程清理
   (defvar my/ess-cleanup-timer nil)
   (defun my/ess-cleanup-old-processes ()
@@ -2665,14 +2658,13 @@ Return absolute path."
   :init
   (setq format-all-show-errors 'never)
   :config
-  (setq format-all-default-formatters
+  (setq format-all-formatters
         '(("LaTeX" auctex)
           ("Emacs Lisp" emacs-lisp)
           ("C" astyle)
-          ("R" styler)
           ("Python" ruff)
-          ("BibTeX" emacs-bibtex))))
-(add-hook 'format-all-mode-hook #'format-all-ensure-formatter)
+          ("BibTeX" emacs-bibtex)))
+(add-hook 'format-all-mode-hook #'format-all-ensure-formatter))
 #+end_src
 *** eglot-mode
 #+begin_src emacs-lisp

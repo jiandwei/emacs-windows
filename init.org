@@ -55,7 +55,16 @@
 ;; Ensure UTF-8 is the default coding system everywhere.
 (prefer-coding-system 'utf-8)
 (setq-default buffer-file-coding-system 'utf-8)
-
+(setq file-name-coding-system 'utf-8)
+(setq-default process-coding-system-alist
+                    '(("[pP][lL][iI][nN][kK]" utf-8-dos . gbk-dos)
+                      ("[cC][mM][dD][pP][rR][oO][xX][yY]" utf-8-dos . gbk-dos)
+                      ("rg" utf-8 . gbk-dos)
+                      ("ug" utf-8 . gbk-dos)
+                      ("ugrep" utf-8 . gbk-dos)
+                      ("es" gbk-dos . gbk-dos)
+                      ("explorer" gbk-dos . gbk-dos)
+                      ("*" utf-8-unix . utf-8-unix)))
 ;; Prevent Emacs from automatically resizing frames based on font changes.
 (setq frame-inhibit-implied-resize t)
 
@@ -1958,6 +1967,12 @@ Missing ones are created once; this function removes itself from
                            "\n\n"
                            "* 思考与感悟"
                            "\n\n"))
+          (新闻联播 . ,(concat "* 重点新闻"
+                               "\n\n"
+                               "* 高频主题"
+                               "\n\n"
+                               "* 关键数据"
+                               "\n\n"))
           (文献 . ,(concat "* 文献信息"
                            "\n** 作者"
                            "\n** 发表时间"
@@ -1989,10 +2004,8 @@ Missing ones are created once; this function removes itself from
 #+end_src
 *** Org Habit
 #+begin_src emacs-lisp
-(use-package org-habit
-  :ensure nil  ;; org-habit 是 org 内置模块
-  :after org
-  :config
+(with-eval-after-load 'org-agenda
+  (require 'org-habit)
   ;; 习惯图表显示列数
   (setq org-habit-graph-column 60)
   ;; 显示过去的天数
@@ -2001,18 +2014,11 @@ Missing ones are created once; this function removes itself from
   (setq org-habit-following-days 7)
   ;; 是否只显示今天的习惯
   (setq org-habit-show-habits-only-for-today nil)
-  ;; 在所有 agenda 视图中显示习惯
-  (setq org-habit-show-all-today t)
   ;; 已完成但未到下次计划的习惯显示为绿色
   (setq org-habit-show-done-always-green t))
 #+end_src
 *** Org Agenda
 #+begin_src emacs-lisp
-(use-package org-super-agenda
-  :ensure t
-  :after org-agenda
-  :config
-  (org-super-agenda-mode))
 ;; ------------------------------------------------------------------
 ;; Fast, cached, auto-discovery of agenda files
 ;; ------------------------------------------------------------------
@@ -2089,7 +2095,6 @@ Rebuilds list if FORCE-REFRESH is non-nil or cache is older than
           (todo   priority-down category-keep)
           (tags   priority-down category-keep)
           (search category-keep))))
-
 
 #+end_src
 *** Org Capture
@@ -2175,17 +2180,15 @@ Return absolute path."
            "* TODO %?\n  %U\n  %i\n"
            :empty-lines 1)
           ("th" "Daily Habit" entry (file ,(my/get-capture-file "inbox"))
-           "* TODO %^{习惯名称}\n  :PROPERTIES:\n  :STYLE: habit\n  :CREATED: %U\n  :END:\n  SCHEDULED: <%<%Y-%m-%d %a +1d>>\n  %?\n"
+           "* TODO %^{习惯名称}\nSCHEDULED: <%<%Y-%m-%d %a +1d>>\n  :PROPERTIES:\n  :STYLE: habit\n  :CREATED: %U\n  :END:\n"
            :empty-lines 1
            :prepend t)
-
           ("n" "Notes" entry (file+headline ,(my/get-capture-file "notes") "Notes")
-           "* %?\n%(my/org-capture-selection-or-block)\n%(my/org-capture-link-format)\n%U"
+           "* %?\n%(my/org-capture-link-format)\n%U"
            :prepend t
            :empty-lines 1)
-
           ("i" "Idea" entry (file+headline ,(my/get-capture-file "ideas") "Ideas")
-           "* %^{Title}\n%?\n%(my/org-capture-selection-or-block)\n%(my/org-capture-link-format)\n%U"
+           "* %^{Title}\n%?\n%(my/org-capture-link-format)\n%U"
            :prepend t
            :empty-lines 1)))
 
@@ -3129,19 +3132,7 @@ Return absolute path."
   :commands (gptel gptel-send gptel-menu gptel-abort)
   :config
   (setq gptel-backends
-        `(("Comprehensive" .
-           ,(gptel-make-openai "Comprehensive"
-              :host "elysiver.h-e.top"
-              :protocol "https"
-              :endpoint "/v1/chat/completions"
-              :stream t
-              :key #'gptel-api-key-from-auth-source
-              :models '(claude-4.5-sonnet-real
-                        gemini-3-pro-preview
-                        glm-4.7
-                        gpt-5.2
-                        grok-4.1)))
-          ("B4U" .
+        `(("B4U" .
            ,(gptel-make-openai "B4U"
               :host "b4u.qzz.io"
               :protocol "https"
@@ -3162,7 +3153,7 @@ Return absolute path."
   (setq gptel-default-mode 'org-mode
         gptel-use-curl nil
         gptel-backend (cdr (assoc "Aliyun Bailian" gptel-backends)) ; 默认后端
-        gptel-model 'kimi-k2-thinking)                                    ; 默认模型
+        gptel-model 'deepseek-v3.2)                                    ; 默认模型
   :bind (("C-c C-<return>" . gptel-menu)
          ("C-c <return>" . gptel-send)
          ("C-c C-g" . gptel-abort)

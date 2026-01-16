@@ -3184,29 +3184,6 @@ Return absolute path."
     (while (re-search-forward "\$?:^\\| \$\\$\$?: \\|$\$" nil t)
       (replace-match "$" nil nil))))
 (add-hook 'gptel-post-response-functions #'replace-and-trim-latex)
-;; 根据项目类型自动选择后端
-(defun my/auto-select-gptel-backend ()
-  "根据项目上下文自动选择gptel后端。"
-  (cond
-   ;; 如果是代码项目，使用DeepSeek
-   ((or (projectile-project-p)
-        (derived-mode-p 'prog-mode))
-    (setq gptel-backend (cdr (assoc "Aliyun Bailian" gptel-backends)))
-    (setq gptel-model 'deepseek-v3.2))
-
-   ;; 如果是文档或需要深度思考，使用Claude
-   ((or (derived-mode-p 'org-mode 'markdown-mode)
-        (string-match-p "\\bthink\\|analyze\\|reason\\b" (buffer-name)))
-    (setq gptel-backend (cdr (assoc "B4U" gptel-backends)))
-    (setq gptel-model 'claude-4.5-sonnet-think))
-
-   ;; 默认使用阿里云
-   (t
-    (setq gptel-backend (cdr (assoc "Aliyun Bailian" gptel-backends)))
-    (setq gptel-model 'deepseek-v3.2))))
-
-;; 在gptel启动时自动调用
-(advice-add 'gptel :before #'my/auto-select-gptel-backend)
 #+end_src
 
 *** Persistent Scratch

@@ -57,14 +57,14 @@
 (setq-default buffer-file-coding-system 'utf-8)
 (setq file-name-coding-system 'utf-8)
 (setq-default process-coding-system-alist
-                    '(("[pP][lL][iI][nN][kK]" utf-8-dos . gbk-dos)
-                      ("[cC][mM][dD][pP][rR][oO][xX][yY]" utf-8-dos . gbk-dos)
-                      ("rg" utf-8 . gbk-dos)
-                      ("ug" utf-8 . gbk-dos)
-                      ("ugrep" utf-8 . gbk-dos)
-                      ("es" gbk-dos . gbk-dos)
-                      ("explorer" gbk-dos . gbk-dos)
-                      ("*" utf-8-unix . utf-8-unix)))
+              '(("[pP][lL][iI][nN][kK]" utf-8-dos . gbk-dos)
+                ("[cC][mM][dD][pP][rR][oO][xX][yY]" utf-8-dos . gbk-dos)
+                ("rg" utf-8 . gbk-dos)
+                ("ug" utf-8 . gbk-dos)
+                ("ugrep" utf-8 . gbk-dos)
+                ("es" gbk-dos . gbk-dos)
+                ("explorer" gbk-dos . gbk-dos)
+                ("*" utf-8-unix . utf-8-unix)))
 ;; Prevent Emacs from automatically resizing frames based on font changes.
 (setq frame-inhibit-implied-resize t)
 
@@ -100,11 +100,10 @@
     (package-install 'use-package))
   (eval-when-compile
     (require 'use-package))
-  ;; Use USTC mirrors (China) for faster downloads.
-  (setq package-archives
-        '(("gnu"    . "https://mirrors.ustc.edu.cn/elpa/gnu/")
-          ("melpa"  . "https://mirrors.ustc.edu.cn/elpa/melpa/")
-          ("nongnu" . "https://mirrors.ustc.edu.cn/elpa/nongnu/")))
+  ;; Use TUNA mirrors (China) for faster downloads.
+  (setq package-archives '(("gnu"    . "https://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/")
+                           ("nongnu" . "https://mirrors.tuna.tsinghua.edu.cn/elpa/nongnu/")
+                           ("melpa"  . "https://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/")))
   ;; Native-compile installed packages for better performance.
   (setq package-native-compile t
         ;; Allow upgrading packages that are built-in to Emacs.
@@ -1087,31 +1086,12 @@ Missing ones are created once; this function removes itself from
 ;; ------------------------------------------------------------------
 (use-package marginalia
   :ensure t
-  :after vertico
-  :hook (after-init . marginalia-mode)
-  :config
-  ;; Custom annotator for commands: show minor-mode state + doc string
-  (defun my/marginalia-annotate-command (cand)
-    "Annotate command CAND with ON/OFF status and doc string."
-    (when-let* ((sym (intern-soft cand)))
-      (concat
-       ;; minor-mode indicator
-       (when (memq sym minor-mode-list)
-         (if (and (boundp sym) (symbol-value sym))
-             (propertize " (On)" 'face 'marginalia-on)
-           (propertize " (Off)" 'face 'marginalia-off)))
-       ;; key binding
-       (marginalia-annotate-binding cand)
-       ;; first line of doc string
-       (marginalia--documentation (marginalia--function-doc sym)))))
+  :hook (after-init . marginalia-mode))
 
-  ;; Replace built-in command annotator
-  (with-eval-after-load 'marginalia
-    (setf (alist-get 'command marginalia-annotator-registry)
-          '(my/marginalia-annotate-command
-            marginalia-annotate-binding
-            builtin
-            none))))
+;; Add icons to completion candidates
+(use-package nerd-icons-completion
+  :ensure t
+  :hook (marginalia-mode . nerd-icons-completion-marginalia-setup))
 #+end_src
 
 *** Consult & Embark
@@ -2272,76 +2252,95 @@ Return absolute path."
 *** Org Agenda 提醒系统
 #+begin_src emacs-lisp
 (use-package appt
-  :defer org-agenda
+  :after org-agenda
   :ensure nil
   :config
+  ;; 激活提醒系统
   (appt-activate 1)
-  (setq appt-message-warning-time 15
-        appt-display-interval 5
-        appt-display-mode-line t
-        appt-display-duration 60
-        appt-audible t
-        appt-display-diary nil
-        appt-display-format 'window)
 
+  ;; 基础配置
+  (setq appt-message-warning-time 15          ; 提前15分钟提醒
+        appt-display-interval 5               ; 每5分钟重复提醒
+        appt-display-mode-line t              ; 在 mode-line 显示
+        appt-display-duration 60              ; 显示60秒
+        appt-audible t                        ; 启用声音
+        appt-display-diary nil                ; 不显示 diary
+        appt-display-format 'window)          ; 使用窗口显示
+
+  ;; 确保变量已初始化
+  (unless (boundp 'appt-time-msg-list)
+    (setq appt-time-msg-list nil))
+
+  ;; 自定义提醒显示函数
   (defun my/appt-display (min-to-app new-time msg)
-    "自定义的提醒显示函数。"
-    (let ((title (format "📅 Agenda 提醒 (%s分钟后)" min-to-app)))
+    "增强的提醒显示函数，支持多种通知方式。
+MIN-TO-APP: 距离约会的分钟数
+NEW-TIME: 约会时间
+MSG: 提醒消息"
+    (let* ((min-num (string-to-number min-to-app))
+           (urgency (cond ((< min-num 5) "🔴 紧急")
+                          ((< min-num 10) "🟡 重要")
+                          (t "🟢 提醒")))
+           (title (format "%s - %s分钟后" urgency min-to-app))
+           (formatted-msg (format "[%s] %s" new-time msg)))
+
+      ;; 显示在 Emacs 窗口
       (appt-disp-window min-to-app new-time msg)
-      (message "%s: %s" title msg)
-      (when (featurep 'alert)
-        (alert msg
+
+      ;; 在 minibuffer 显示
+      (message "📅 %s: %s" title formatted-msg)
+
+      ;; 使用 alert 包发送通知
+      (when (and (featurep 'alert) (fboundp 'alert))
+        (alert formatted-msg
                :title title
-               :severity (cond
-                          ((< (string-to-number min-to-app) 5) 'urgent)
-                          ((< (string-to-number min-to-app) 10) 'high)
-                          (t 'moderate))
-               :category 'org-agenda))))
+               :severity (cond ((< min-num 5) 'urgent)
+                               ((< min-num 10) 'high)
+                               (t 'moderate))
+               :category 'org-agenda
+               :id 'org-appt))))
 
   (setq appt-disp-window-function #'my/appt-display)
 
-  (defun my/org-agenda-to-appt ()
-    "从 Org Agenda 文件中提取所有约会。"
-    (interactive)
-    (setq appt-time-msg-list nil)
-    (org-agenda-to-appt t)
-    (message "已从 Agenda 加载 %d 个约会提醒" (length appt-time-msg-list)))
+  ;; 从 Org Agenda 加载约会
+  (defun my/org-agenda-to-appt (&optional force)
+    "从 Org Agenda 文件中提取所有约会。
+ 如果 FORCE 为非 nil，则强制重新加载，否则只在列表为空时加载。"
+    (interactive "P")
+    (condition-case err
+        (let ((count-before (length appt-time-msg-list)))
+          (when (or force (null appt-time-msg-list))
+            (setq appt-time-msg-list nil)
+            (org-agenda-to-appt t))
+          (let ((count-after (length appt-time-msg-list)))
+            (message "✅ 约会提醒已更新: %d 个事项 %s"
+                     count-after
+                     (if (> count-after count-before)
+                         (format "(新增 %d)" (- count-after count-before))
+                       ""))))
+      (error
+       (message "❌ 加载约会提醒时出错: %s" (error-message-string err))
+       nil)))
 
-  (run-at-time nil 3600 'my/org-agenda-to-appt)
-  (add-hook 'org-finalize-agenda-hook 'my/org-agenda-to-appt)
-  (add-hook 'org-after-todo-state-change-hook 'my/org-agenda-to-appt)
-  (add-hook 'org-after-tags-change-hook 'my/org-agenda-to-appt)
-  (my/org-agenda-to-appt)
-  (message "Org Agenda 提醒系统已启用"))
+  ;; 定时更新（每小时）
+  (run-at-time "00:00" 3600 #'my/org-agenda-to-appt)
 
-(use-package alert
-  :ensure t
-  :after appt
-  :config
-  (setq alert-default-style  'message))
+  ;; 启动时延迟5秒加载
+  (run-at-time "5 sec" nil #'my/org-agenda-to-appt)
 
-(defun my/show-today-appointments ()
-  "显示今天所有的提醒事项。"
-  (interactive)
-  (if appt-time-msg-list
-      (let ((buf (get-buffer-create "*Today's Appointments*")))
-        (with-current-buffer buf
-          (erase-buffer)
-          (insert (propertize "📅 今日提醒事项\n\n"
-                              'face '(:height 1.3 :weight bold)))
-          (dolist (appt appt-time-msg-list)
-            (insert (format "⏰ %s - %s\n"
-                            (car appt)
-                            (cadr appt))))
-          (goto-char (point-min)))
-        (display-buffer buf))
-    (message "今天没有提醒事项")))
+  ;; 各种钩子自动更新
+  (add-hook 'org-finalize-agenda-hook #'my/org-agenda-to-appt)
+  (add-hook 'org-after-todo-state-change-hook
+            (lambda () (my/org-agenda-to-appt t)))
+  (add-hook 'org-after-tags-change-hook
+            (lambda () (my/org-agenda-to-appt t)))
 
-(defun my/clear-all-appointments ()
-  "清除所有提醒事项。"
-  (interactive)
-  (setq appt-time-msg-list nil)
-  (message "已清除所有提醒"))
+  ;; 保存 org 文件时更新
+  (add-hook 'org-mode-hook
+            (lambda ()
+              (add-hook 'after-save-hook
+                        (lambda () (my/org-agenda-to-appt t))
+                        nil 'local))))
 #+end_src
 *** Org导出
 #+BEGIN_SRC emacs-lisp
@@ -3141,6 +3140,10 @@ Return absolute path."
               :key #'gptel-api-key-from-auth-source
               :models '(claude-4.5-sonnet-think
                         claude-4.5-sonnet)))
+          ("Deep Seek" .
+           ,(gptel-make-deepseek "DeepSeek"
+              :stream t
+              :key #'gptel-api-key-from-auth-source))
           ("Aliyun Bailian" .
            ,(gptel-make-openai "Aliyun Bailian"
               :host "dashscope.aliyuncs.com"

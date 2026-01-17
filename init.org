@@ -1896,17 +1896,6 @@ Missing ones are created once; this function removes itself from
 (use-package denote
   :ensure t
   :defer t
-  :init
-  (with-eval-after-load 'org-capture
-    (setq denote-org-capture-specifiers "%l\n%i\n%?")
-    (add-to-list 'org-capture-templates
-                 '("N" "New note (with denote.el)" plain
-                   (file denote-last-path)
-                   #'denote-org-capture
-                   :no-save t
-                   :immediate-finish nil
-                   :kill-buffer t
-                   :jump-to-captured t)))
   :custom
   (denote-file-type 'org)
   (denote-directory my/denote-root)

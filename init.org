@@ -1028,6 +1028,27 @@ Missing ones are created once; this function removes itself from
          :map isearch-mode-map
          ("C-c r" . visual-replace-from-isearch)))
 #+end_src
+*** 配置sis
+#+begin_src emacs-lisp
+(use-package sis
+  :ensure t
+  ;; :hook
+  ;; 为指定的缓冲区启用 /context/ 和 /inline region/ 模式
+  ;; (((text-mode prog-mode) . sis-context-mode)
+  ;;  ((text-mode prog-mode) . sis-inline-mode))
+
+  :config
+  (sis-ism-lazyman-config nil t 'w32)
+  ;; 启用 /光标颜色/ 模式
+  (sis-global-cursor-color-mode t)
+  ;; 启用 /respect/ 模式
+  (sis-global-respect-mode t)
+  ;; 为所有缓冲区启用 /context/ 模式
+  (sis-global-context-mode t)
+  ;; 为所有缓冲区启用 /inline english/ 模式
+  (sis-global-inline-mode t)
+  )
+#+end_src
 ** 补全、搜索与命令面板
 *** Orderless Vertico Marginalia
 #+begin_src emacs-lisp

@@ -373,7 +373,7 @@ Missing ones are created once; this function removes itself from
       (set-fontset-font t 'symbol (font-spec :family sym) nil 'prepend))
     ;; Emoji
     (when-let* ((emo (plist-get my/font-cache :emoji)))
-               (set-fontset-font t 'emoji (font-spec :family emo) nil 'prepend))))
+      (set-fontset-font t 'emoji (font-spec :family emo) nil 'prepend))))
 (add-hook 'after-init-hook #'my/setup-fonts-beautiful)
 ;; Re-apply after new frame (needed for daemon mode)
 (add-hook 'after-make-frame-functions #'my/setup-fonts-beautiful)
@@ -388,102 +388,39 @@ Missing ones are created once; this function removes itself from
   :ensure t
   :hook (after-init . doom-modeline-mode)
   :custom
-  ;; ---------- Icon settings ----------
-  (doom-modeline-icon t)                       ; enable all icons
-  (doom-modeline-major-mode-icon t)            ; icon for major mode
-  (doom-modeline-major-mode-color-icon t)      ; coloured mode icons
+  ;; ========== Core Display ==========
+  (doom-modeline-height 28)
+  (doom-modeline-bar-width 4)
+  (doom-modeline-window-width-limit 85)
+  (doom-modeline-buffer-file-name-style 'relative-from-project)
 
-  ;; ---------- Height & bar ----------
-  (doom-modeline-height 28)                    ; pixel height of the modeline
-  (doom-modeline-bar-width 4)                  ; left highlight bar width
-  (doom-modeline-window-width-limit 85)        ; hide info when window < 85 cols
-
-  ;; ---------- What to show ----------
-  (doom-modeline-buffer-file-name-style 'relative-from-project) ; short path
-  (doom-modeline-buffer-encoding nil)          ; hide encoding (UTF-8 assumed)
-  (doom-modeline-indent-info nil)              ; hide indentation style
-  (doom-modeline-minor-modes nil)              ; hide minor-mode lighters
-
-  ;; ---------- Time & modal state ----------
-  (doom-modeline-time-icon t)
-  (doom-modeline-time t)                       ; display clock in modeline
-  (doom-modeline-modal t)                      ; show modal editing state
-  (doom-modeline-modal-icon t)
-  (doom-modeline-modal-modern-icon t)
-
-  ;; ---------- LSP ----------
-  (doom-modeline-lsp t)                        ; show LSP status
-  (doom-modeline-lsp-icon t)
-
-  ;; ---------- Git ----------
-  (doom-modeline-vcs-max-length 20)            ; truncate long branch names
-  (doom-modeline-check-simple-format t)        ; simpler git status string
-  (doom-modeline-persp-name t)                 ; workspace name (persp/perspective)
-  (doom-modeline-persp-icon t)
-
-  ;; ---------- Performance ----------
-  (doom-modeline-env-version nil)              ; don't query runtime versions
-  (doom-modeline-github nil)                   ; no GitHub notifications
-  (doom-modeline-mu4e nil)
-  (doom-modeline-irc nil)
-  (doom-modeline-gnus nil)
-
-  ;; ---------- Org & text modes ----------
-  (doom-modeline-enable-word-count t)
-  (doom-modeline-continuous-word-count-modes
-   '(markdown-mode gfm-mode org-mode text-mode))
-
-  ;; ---------- Project ----------
-  (doom-modeline-project-detection 'auto)      ; auto-detect project root
-
-  ;; ---------- Buffer state ----------
+  ;; ========== Icons ==========
+  (doom-modeline-icon t)
+  (doom-modeline-major-mode-icon t)
+  (doom-modeline-major-mode-color-icon t)
   (doom-modeline-buffer-state-icon t)
   (doom-modeline-buffer-modification-icon t)
 
-  :config
-  ;; ---------- Custom faces (Nord palette) ----------
-  (custom-set-faces
-   ;; emphasise modified buffer
-   '(doom-modeline-buffer-modified ((t (:foreground "#bf616a" :weight bold))))
-   ;; major-mode name
-   '(doom-modeline-buffer-major-mode ((t (:foreground "#88c0d0" :weight bold))))
-   ;; file path
-   '(doom-modeline-buffer-path ((t (:foreground "#81a1c1" :weight normal))))
-   ;; git branch
-   '(doom-modeline-vcs-branch ((t (:foreground "#a3be8c"))))
-   ;; git dirty
-   '(doom-modeline-vcs-modified ((t (:foreground "#ebcb8b"))))
-   ;; LSP
-   '(doom-modeline-lsp-success ((t (:foreground "#a3be8c" :weight bold))))
-   '(doom-modeline-lsp-warning ((t (:foreground "#ebcb8b" :weight bold))))
-   '(doom-modeline-lsp-error ((t (:foreground "#bf616a" :weight bold))))
-   ;; left bar
-   '(doom-modeline-bar ((t (:background "#88c0d0"))))
-   '(doom-modeline-bar-inactive ((t (:background "#4c566a")))))
-
-  ;; ---------- Clock format ----------
-  (when doom-modeline-time
-    (setq display-time-format "%H:%M"
-          display-time-default-load-average nil
-          display-time-interval 60))
-
-  ;; ---------- Auto-adapt to Circadian theme changes ----------
-  (with-eval-after-load 'circadian
-    (defun my/doom-modeline-adapt-theme ()
-      "Adapt modeline faces to the active light/dark theme."
-      (let ((bg (face-background 'default))
-            (fg (face-foreground 'default)))
-        (custom-set-faces
-         `(mode-line ((t (:background ,bg :foreground ,fg
-                          :box (:line-width 3 :color ,bg)))))
-         `(mode-line-inactive ((t (:background ,(doom-blend bg fg 0.1)
-                                   :foreground ,(doom-blend fg bg 0.4))))))))
-    (add-hook 'circadian-after-load-theme-hook #'my/doom-modeline-adapt-theme))
-
-  ;; ---------- Icon font backend ----------
-  (use-package nerd-icons
-    :ensure t
-    :defer t))   ; loaded on-demand by dired, ibuffer, etc.
+  ;; ========== Integrations ==========
+  (doom-modeline-lsp t)
+  (doom-modeline-lsp-icon t)
+  (doom-modeline-vcs-max-length 20)
+  (doom-modeline-check-simple-format t)
+  (doom-modeline-project-detection 'auto)
+  ;; ========== Workspace ==========
+  (doom-modeline-persp-name t)
+  (doom-modeline-persp-icon t)
+  ;; ========== Text Modes ==========
+  (doom-modeline-enable-word-count t)
+  (doom-modeline-continuous-word-count-modes
+   '(markdown-mode gfm-mode org-mode text-mode))
+  ;; ========== Hide Clutter ==========
+  (doom-modeline-buffer-encoding nil)
+  (doom-modeline-indent-info nil)
+  (doom-modeline-minor-modes nil))
+(use-package nerd-icons
+  :ensure t
+  :defer t)   ; loaded on-demand by dired, ibuffer, etc.
 #+end_src
 *** 高亮与反馈
 **** 当前行高亮
@@ -1737,26 +1674,21 @@ Missing ones are created once; this function removes itself from
                  (visual-line-mode 1)           ; soft wrap long lines
                  (turn-on-org-cdlatex)          ; fast LaTeX math snippets
                  (yas-minor-mode 1)             ; snippets
-                 ;;(my/add-latex-in-org-mode-expansions)
-                 (my/org-indent-setup)
+                 (my/add-latex-in-org-mode-expansions)
                  ;; one-time emphasis regexp optimisation
                  (my/org-optimize-emphasis-parsing)))
    ;; refresh inline images after executing babel blocks
    (org-babel-after-execute . org-redisplay-inline-images))
-
   :bind (("C-c a" . org-agenda)               ; global agenda dispatcher
          :map org-mode-map
          ("C-c i" . yank-media)               ; paste image from clipboard
          ("C-c l" . org-store-link))          ; store link to heading/file
-
   :custom
-
   ;; ----------------------------------------------------------------
   ;; Paths & persistence
   ;; ----------------------------------------------------------------
   (org-persist-directory (locate-user-emacs-file "etc/org-persist/"))
   (org-directory my/org-agenda-root)          ; defined elsewhere
-
   ;; ----------------------------------------------------------------
   ;; Display & cosmetics
   ;; ----------------------------------------------------------------
@@ -1768,25 +1700,21 @@ Missing ones are created once; this function removes itself from
   (org-fontify-quote-and-verse-blocks t)
   (org-ellipsis " [+]")                       ; cleaner folding indicator
   (org-image-actual-width '(600))             ; max 600 px wide images
-
   ;; ----------------------------------------------------------------
   ;; Lists & checkboxes
   ;; ----------------------------------------------------------------
   (org-list-demote-modify-bullet              ; cycle bullets on demote
    '(("+" . "-") ("1." . "a.") ("-" . "+")))
-
   ;; ----------------------------------------------------------------
   ;; LaTeX preview
   ;; ----------------------------------------------------------------
   (org-preview-latex-image-directory
    (expand-file-name "orgltxpng/" (or (getenv "TEMP") "/tmp")))
   (org-latex-preview-numbered t)
-
   ;; ----------------------------------------------------------------
   ;; Navigation & imenu
   ;; ----------------------------------------------------------------
   (org-imenu-depth 4)
-
   ;; ----------------------------------------------------------------
   ;; TODO keywords & faces (Nord palette)
   ;; ----------------------------------------------------------------
@@ -1799,11 +1727,9 @@ Missing ones are created once; this function removes itself from
      ("WAIT"      :foreground "#9f7efe" :weight bold)
      ("DONE"      :foreground "#50a14f" :weight bold)
      ("CANCELLED" :foreground "#ff6480" :weight bold)))
-
   (org-use-fast-todo-selection 'expert)       ; single-key speed selection
   (org-enforce-todo-dependencies t)           ; block parent until kids done
   (org-enforce-todo-checkbox-dependencies t)
-
   ;; ----------------------------------------------------------------
   ;; Priorities & properties
   ;; ----------------------------------------------------------------
@@ -1811,22 +1737,18 @@ Missing ones are created once; this function removes itself from
    '((?A . (:foreground "red"))
      (?B . (:foreground "orange"))
      (?C . (:foreground "yellow"))))
-
   (org-global-properties
    '(("EFFORT_ALL" . "0:15 0:30 0:45 1:00 2:00 3:00 4:00 5:00 6:00 7:00 8:00")
      ("APPT_WARNTIME_ALL" . "0 5 10 15 20 25 30 45 60")
      ("STYLE_ALL" . "habit")))
-
   (org-columns-default-format
    "%25ITEM %TODO %SCHEDULED %DEADLINE %3PRIORITY %TAGS %CLOCKSUM %EFFORT{:}")
-
   ;; ----------------------------------------------------------------
   ;; Logging & archiving
   ;; ----------------------------------------------------------------
   (org-log-repeat 'time)                      ; time-stamp repeated tasks
   (org-closed-keep-when-no-todo t)
   (org-archive-location "%s_archive::datetree/")
-
   ;; ----------------------------------------------------------------
   ;; Refile / capture
   ;; ----------------------------------------------------------------
@@ -1837,52 +1759,242 @@ Missing ones are created once; this function removes itself from
   (org-refile-allow-creating-parent-nodes 'confirm)
   (org-goto-auto-isearch nil)
   (org-goto-interface 'outline-path-completion)
-
   ;; ----------------------------------------------------------------
   ;; Tags & links
   ;; ----------------------------------------------------------------
   (org-use-fast-tag-selection t)
   (org-fast-tag-selection-single-key t)
   (org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
-
   :config
-  ;; ----------------------------------------------------------------
-  ;; Image handling: save clipboard images to disk
-  ;; ----------------------------------------------------------------
+  ;; ================================================================
+  ;; Org-mode Enhanced Emphasis & Subscript/Superscript Support
+  ;; ================================================================
+  ;; Support for Chinese characters and improved emphasis parsing
+  ;; ================================================================
+  (with-eval-after-load 'org
+    ;; -------------------- Custom Emphasis Parsing --------------------
+    (defun my/org-element--parse-generic-emphasis (mark type)
+      "Parse emphasis object at point with better Unicode support.
+MARK is the delimiter string (e.g., \"*\", \"/\", \"_\").
+TYPE is a symbol: `bold', `code', `italic', `strike-through',
+`underline', or `verbatim'.
+This override adds support for:
+- Chinese and other non-ASCII characters
+- Better boundary detection
+- Improved whitespace handling"
+      (save-excursion
+        (let ((origin (point)))
+          (unless (bolp) (forward-char -1))
+          (let ((opening-re
+                 (rx-to-string
+                  `(seq (or line-start
+                            (any space ?- ?\( ?' ?\" ?\{ nonascii))
+                        ,mark
+                        (not space)))))
+            (when (looking-at opening-re)
+              (goto-char (1+ origin))
+              (let ((closing-re
+                     (rx-to-string
+                      `(seq (not space)
+                            (group ,mark)
+                            (or (any space ?- ?. ?, ?\; ?: ?! ?? ?' ?\"
+                                     ?\) ?\} ?\\ ?\[ nonascii)
+                                line-end)))))
+                (when (re-search-forward closing-re nil t)
+                  (let* ((closing (match-end 1))
+                         (post-blank (progn
+                                       (goto-char closing)
+                                       (skip-chars-forward " \t")))
+                         (contents-begin (1+ origin))
+                         (contents-end (1- closing)))
+                    (list type
+                          (append
+                           (list :begin origin
+                                 :end (point)
+                                 :post-blank post-blank)
+                           (if (memq type '(code verbatim))
+                               (list :value
+                                 (buffer-substring contents-begin
+                                                   contents-end))
+                             (list :contents-begin contents-begin
+                                   :contents-end contents-end))))))))))))
+    ;; -------------------- Enhanced Emphasis Faces --------------------
+    (defun my/org-do-emphasis-faces (limit)
+      "Apply emphasis faces with improved Unicode and Chinese support.
+This function runs through the buffer up to LIMIT and applies
+appropriate faces to emphasized text."
+      (let ((quick-re (format "\\([%s]\\|^\\)\\([~=*/_+]\\)"
+                              (car org-emphasis-regexp-components))))
+        (catch :exit
+          (while (re-search-forward quick-re limit t)
+            (let* ((marker (match-string 2))
+                   (verbatim? (member marker '("~" "="))))
+              (when (save-excursion
+                      (goto-char (match-beginning 0))
+                      (and
+                       ;; Prevent recursive emphasis
+                       (not (save-excursion
+                              (forward-char 1)
+                              (get-pos-property (point) 'org-emphasis)))
+                       ;; Skip LaTeX fragments
+                       (not (org-inside-LaTeX-fragment-p))
+                       ;; Skip property drawers
+                       (not (org-match-line
+                             "^[    ]*:\\(\\(?:\\w\\|[-_]\\)+\\):[      ]*"))
+                       ;; Skip table hlines with '+'
+                       (not (and (equal marker "+")
+                                 (org-match-line
+                                  "[ \t]*\\(|[-+]+|?\\|\\+[-+]+\\+\\)[ \t]*$")))
+                       ;; Skip headline stars
+                       (not (and (equal marker "*")
+                                 (save-excursion
+                                   (forward-char)
+                                   (skip-chars-backward "*")
+                                   (looking-at-p org-outline-regexp-bol))))
+                       ;; Match full emphasis regexp
+                       (looking-at (if verbatim?
+                                       org-verbatim-re
+                                     org-emph-re))
+                       ;; Don't span paragraphs
+                       (not (string-match-p org-element-paragraph-separate
+                                            (match-string 2)))
+                       ;; Don't span table cells
+                       (not (and (save-match-data (org-match-line "[ \t]*|"))
+                                 (string-match-p "|" (match-string 4))))))
+                (pcase-let ((`(,_ ,face ,_) (assoc marker org-emphasis-alist))
+                            (m (if org-hide-emphasis-markers 4 2)))
+                  ;; Apply face
+                  (font-lock-prepend-text-property
+                   (match-beginning m) (match-end m) 'face face)
+                  ;; Handle verbatim text specially
+                  (when verbatim?
+                    (org-remove-flyspell-overlays-in
+                     (match-beginning 0) (match-end 0))
+                    ;; Handle folding if available
+                    (when (and (org-fold-core-folding-spec-p 'org-link)
+                               (org-fold-core-folding-spec-p 'org-link-description))
+                      (org-fold-region (match-beginning 0) (match-end 0)
+                                       nil 'org-link)
+                      (org-fold-region (match-beginning 0) (match-end 0)
+                                       nil 'org-link-description))
+                    (remove-text-properties
+                     (match-beginning 2) (match-end 2)
+                     '(display t invisible t intangible t)))
+                  ;; Mark as emphasis for future checks
+                  (add-text-properties
+                   (match-beginning 2) (match-end 2)
+                   '(font-lock-multiline t org-emphasis t))
+                  ;; Hide markers if configured
+                  (when (and org-hide-emphasis-markers
+                             (not (org-at-comment-p)))
+                    (add-text-properties
+                     (match-end 4) (match-beginning 5)
+                     '(invisible t))
+                    (add-text-properties
+                     (match-beginning 3) (match-end 3)
+                     '(invisible t)))
+                  (throw :exit t))))))))
+
+    ;; -------------------- Configuration --------------------
+    ;; Enhanced emphasis regexp for Unicode support
+    (setq org-emphasis-regexp-components
+          '("-[:space:]('\"{[:nonascii:]"           ; Pre chars
+            "-[:space:].,:!?;'\")}\\[[:nonascii:]"  ; Post chars
+            "[:space:]"                              ; Forbidden border
+            "."                                      ; Body regexp
+            1))                                      ; Max newlines
+    ;; Enhanced subscript/superscript matching for alphanumeric + Greek
+    (setq org-match-substring-regexp
+          (concat
+           "\\([0-9a-zA-Zα-γΑ-Ω]\\)"  ; Base character (includes Greek)
+           "\\([_^]\\)"                ; Sub/superscript marker
+           "\\("
+           ;; Braced expression: {content}
+           "\\(?:" (org-create-multibrace-regexp "{" "}"
+                                                 org-match-sexp-depth) "\\)"
+           "\\|"
+           ;; Parenthesized expression: (content)
+           "\\(?:" (org-create-multibrace-regexp "(" ")"
+                                                 org-match-sexp-depth) "\\)"
+           "\\|"
+           ;; Simple expression: number, word, or symbol
+           "\\(?:\\*\\|[+-]?[[:alnum:].,\\]*[[:alnum:]]\\)"
+           "\\)"))
+    ;; -------------------- Apply Configuration --------------------
+    ;; Update emphasis regex
+    (org-set-emph-re 'org-emphasis-regexp-components
+                     org-emphasis-regexp-components)
+    ;; Update syntax parser
+    (org-element-update-syntax)
+    ;; Install advice
+    (advice-add #'org-do-emphasis-faces
+                :override #'my/org-do-emphasis-faces)
+    (advice-add #'org-element--parse-generic-emphasis
+                :override #'my/org-element--parse-generic-emphasis)
+    ;; -------------------- Cleanup on Unload --------------------
+    (defun my/org-emphasis-unload ()
+      "Remove custom emphasis advice."
+      (advice-remove #'org-do-emphasis-faces
+                     #'my/org-do-emphasis-faces)
+      (advice-remove #'org-element--parse-generic-emphasis
+                     #'my/org-element--parse-generic-emphasis))
+    (add-hook 'kill-emacs-hook #'my/org-emphasis-unload))
+  ;; ================================================================
+  ;; Org-mode Image Handling: Clipboard to Disk with Caption
+  ;; ================================================================
+  ;; Enable image yanking to save as files
   (setq org-yank-image-save-method "file")
 
+  ;; -------------------- Path Generator --------------------
   (defun my/org-yank-image-file-name ()
-    "Generate figure path under current heading."
+    "Generate organized figure path under current heading.
+Creates: Figure/heading-name/YYYYMMDD_HHMMSS.png"
     (unless (buffer-file-name)
-      (error "Please save the Org file first"))
+      (user-error "Buffer must be saved before inserting images"))
+
     (let* ((heading (or (org-get-heading t t t t) "default"))
-           (clean-heading (replace-regexp-in-string "[^a-zA-Z0-9\u4e00-\u9fa5-]+" "_" heading))
+           (clean-heading (replace-regexp-in-string
+                           "[^a-zA-Z0-9\u4e00-\u9fa5-]+" "_" heading))
            (time-stamp (format-time-string "%Y%m%d_%H%M%S"))
-           (fig-dir (expand-file-name (concat "Figure/" clean-heading "/")
-                                      (file-name-directory (buffer-file-name))))
+           (fig-dir (expand-file-name
+                     (concat "Figure/" clean-heading "/")
+                     (file-name-directory (buffer-file-name))))
            (full-path (expand-file-name (concat time-stamp ".png") fig-dir)))
+
       (make-directory fig-dir t)
-      (message "Image saved to %s" full-path)
       full-path))
 
   (setq org-yank-image-file-name-function #'my/org-yank-image-file-name)
 
-  ;; Prompt for description after image is inserted
-  (defun my/org-yank-image-add-description ()
-    "Add description to last pasted image link."
+  ;; -------------------- Caption Insertion --------------------
+  (defun my/org-add-image-caption ()
+    "Add #+CAPTION: above the last inserted image link."
     (when (eq major-mode 'org-mode)
       (save-excursion
-        (when (re-search-backward "\\[\\[file:\\([^]]+\\)\\]\\]" (line-beginning-position) t)
-          (let* ((file (match-string 1))
-                 (desc (read-string "Image description: ")))
-            (unless (string-empty-p desc)
-              (replace-match (format "[[file:%s][%s]]" file desc) t t)))))))
+        ;; Find the last inserted image link
+        (when (re-search-backward
+               "^\\[\\[file:\\([^]]+\\.png\\)\\]\\]$"
+               (line-beginning-position 0) t)
+          (let* ((file-path (match-string 1))
+                 (file-name (file-name-nondirectory file-path))
+                 (default-caption (file-name-sans-extension file-name))
+                 (caption (read-string
+                           (format "Caption (default: %s): " default-caption)
+                           nil nil default-caption)))
 
-  (advice-add 'yank-media :after
-              (lambda (&rest _)
-                (when (eq major-mode 'org-mode)
-                  (run-with-idle-timer 0.1 nil #'my/org-yank-image-add-description))))
+            (unless (string-empty-p caption)
+              ;; Insert caption above the image link
+              (goto-char (line-beginning-position))
+              (insert (format "#+CAPTION: %s\n" caption))
+              (message "✓ Caption added: %s" caption)))))))
 
+  ;; -------------------- Hook Integration --------------------
+  (defun my/yank-image-with-caption (&rest _)
+    "Wrapper to add caption after image insertion in org-mode."
+    (when (eq major-mode 'org-mode)
+      (run-with-idle-timer 0.1 nil #'my/org-add-image-caption)))
+
+  (advice-add 'yank-media :after #'my/yank-image-with-caption)
   ;; ----------------------------------------------------------------
   ;; LaTeX & expand-region tweaks
   ;; ----------------------------------------------------------------
@@ -1891,7 +2003,6 @@ Missing ones are created once; this function removes itself from
     (modify-syntax-entry ?\\ "\\" org-mode-syntax-table)
     (setq paragraph-start (concat paragraph-start "\\|\\\\end{[A-Za-z0-9*]+}"))
     (setq-local beginning-of-defun-function #'my/org-beginning-of-defun)
-
     (with-eval-after-load 'expand-region
       (setq-local my/try-expand-list
                   (append (cl-set-difference my/try-expand-list
@@ -1902,14 +2013,55 @@ Missing ones are created once; this function removes itself from
                             my/mark-LaTeX-inside-math
                             my/mark-latex-inside-pairs
                             my/mark-latex-outside-pairs
-                            my/mark-LaTeX-math)))))
-
-  ;; ----------------------------------------------------------------
-  ;; Indentation
-  ;; ----------------------------------------------------------------
-  (defun my/org-indent-setup ()
-    "Disable show-paren in Org buffers – it slows things down."
-    (setq-local show-paren-mode nil)))
+                            my/mark-LaTeX-math))))))
+(use-package org-modern
+  :ensure t
+  :hook
+  ((org-mode . org-modern-mode)
+   (org-agenda-finalize . org-modern-agenda))
+  :custom
+  (org-tags-column 0)
+  (org-special-ctrl-a/e t)
+  (org-insert-heading-respect-content t)
+  (org-modern-keyword t)
+  (org-modern-table-horizontal 0.2)
+  (org-modern-tag t)
+  (org-modern-timestamp nil)
+  (org-modern-table t)
+  (org-modern-priority t)
+  (custom-set-faces
+   '(org-modern-symbol ((t (:height 1.0 :foreground "#81A1C1"))))
+   '(org-modern-tag ((t (:background "#3B4252" :foreground "#ECEFF4"
+                         :height 1.0 :weight regular :box nil))))
+   '(org-modern-priority ((t (:height 1.0 :inherit org-priority))))
+   '(org-modern-date-active ((t (:background "#434C5E" :foreground "#88C0D0"
+                                 :height 1.0 :box nil))))
+   '(org-modern-date-inactive ((t (:background "#3B4252" :foreground "#4C566A"
+                                   :height 1.0 :box nil))))
+   '(org-modern-time-active ((t (:inherit org-modern-date-active))))
+   '(org-modern-time-inactive ((t (:inherit org-modern-date-inactive)))))
+  ;; 行间距优化
+  (defun my/org-modern-spacing ()
+    (setq-local line-spacing 0.15))
+  (add-hook 'org-modern-mode-hook #'my/org-modern-spacing)
+  :config
+  (setq
+   ;; 标题星号 - 渐进式圆形
+   org-modern-star '("◉" "○" "◈" "◇" "⬡" "⬢")
+   ;; 列表符号 - 统一箭头系
+   org-modern-list '((43 . "▶")   ;; + 实心三角
+                     (45 . "▸")   ;; - 空心三角
+                     (42 . "•"))  ;; * 圆点
+   ;; 复选框 - 统一方形
+   org-modern-checkbox
+   '((88 . "☑")   ;; [X] 完成
+     (45 . "◫")   ;; [-] 进行中
+     (32 . "☐"))  ;; [ ] 未完成
+   ;; LaTeX 片段 - 数学符号
+   org-modern-latex
+   '((t . t)
+     ("\$" "⁅" "⁆")
+     ("\$$" "⟦" "⟧"))))
 #+end_src
 *** Denote 笔记系统
 #+begin_src emacs-lisp
@@ -2714,6 +2866,28 @@ MSG: 提醒消息"
 #+end_src
 *** 编程模式通用设置
 #+begin_src emacs-lisp
+(use-package project
+  :ensure nil                                    ; 内置包
+  :defer t                                       ; 按需加载
+  :bind (("C-x p f" . project-find-file)        ; 快速找文件
+         ("C-x p g" . project-find-regexp)      ; 全文搜索（rg）
+         ("C-x p b" . project-switch-to-buffer) ; 仅项目内 buffer
+         ("C-x p k" . project-kill-buffers)     ; 一键关闭项目 buffer
+         ("C-x p p" . project-switch-project)   ; 最近项目切换
+         ("C-x p d" . project-dired)            ; 在项目根打开 dired
+         ("C-x p c" . project-compile)          ; 在项目根编译
+         ("C-x p e" . project-eshell))          ; 在项目根开 eshell
+  :custom
+  ;; 用 ripgrep 替代 grep（需先装 rg）
+  (project-find-regexp-function (if (executable-find "rg")
+                                    #'project-ripgrep
+                                  #'project-find-regexp))
+  ;; 缓存 50 个最近项目
+  (project-list-size 50)
+  ;; 把缓存文件集中存放
+  (project-list-file (locate-user-emacs-file "etc/project-list.el"))
+  ;; 模糊匹配：vertico 用户自动生效，默认 completion 也够用
+  (project-completion-system 'default))
 (use-package eldoc
   :after eglot
   :bind

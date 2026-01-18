@@ -373,7 +373,7 @@ Missing ones are created once; this function removes itself from
       (set-fontset-font t 'symbol (font-spec :family sym) nil 'prepend))
     ;; Emoji
     (when-let* ((emo (plist-get my/font-cache :emoji)))
-      (set-fontset-font t 'emoji (font-spec :family emo) nil 'prepend))))
+               (set-fontset-font t 'emoji (font-spec :family emo) nil 'prepend))))
 (add-hook 'after-init-hook #'my/setup-fonts-beautiful)
 ;; Re-apply after new frame (needed for daemon mode)
 (add-hook 'after-make-frame-functions #'my/setup-fonts-beautiful)
@@ -1028,27 +1028,6 @@ Missing ones are created once; this function removes itself from
          :map isearch-mode-map
          ("C-c r" . visual-replace-from-isearch)))
 #+end_src
-*** 配置sis
-#+begin_src emacs-lisp
-(use-package sis
-  :ensure t
-  ;; :hook
-  ;; 为指定的缓冲区启用 /context/ 和 /inline region/ 模式
-  ;; (((text-mode prog-mode) . sis-context-mode)
-  ;;  ((text-mode prog-mode) . sis-inline-mode))
-
-  :config
-  (sis-ism-lazyman-config nil t 'w32)
-  ;; 启用 /光标颜色/ 模式
-  (sis-global-cursor-color-mode t)
-  ;; 启用 /respect/ 模式
-  (sis-global-respect-mode t)
-  ;; 为所有缓冲区启用 /context/ 模式
-  (sis-global-context-mode t)
-  ;; 为所有缓冲区启用 /inline english/ 模式
-  (sis-global-inline-mode t)
-  )
-#+end_src
 ** 补全、搜索与命令面板
 *** Orderless Vertico Marginalia
 #+begin_src emacs-lisp
@@ -1094,29 +1073,48 @@ Missing ones are created once; this function removes itself from
          ("DEL"   . vertico-directory-delete-char) ; delete char or go up dir
          ("M-DEL" . vertico-directory-delete-word)) ; delete word
   :custom
-  (vertico-count 15)                ; 15 candidates visible
+  (vertico-count 17)                ; 15 candidates visible
   (vertico-cycle t)                 ; wrap around
-  (vertico-resize nil))             ; keep height fixed
+  (vertico-resize nil)             ; keep height fixed
 
-;; Tidy shadowed file name in minibuffer when moving through directories
-(with-eval-after-load 'vertico
+  ;; Tidy shadowed file name in minibuffer when moving through directories
+  :config
   (add-hook 'rfn-eshadow-update-overlay-hook #'vertico-directory-tidy))
 
 ;; ------------------------------------------------------------------
 ;; Marginalia – rich annotations in minibuffer
 ;; ------------------------------------------------------------------
+
 (use-package marginalia
   :ensure t
-  :hook (after-init . marginalia-mode))
+  :hook (after-init . marginalia-mode)
+  :custom
+  ;; 优化：右对齐，更美观
+  (marginalia-align 'center)
+  ;; 增加字段宽度，显示更多信息
+  (marginalia-max-relative-age 0)
+  ;; 自定义注解器顺序
+  (marginalia-annotator-registry
+   (append marginalia-annotator-registry
+           '((command marginalia-annotate-command builtin none)
+             (symbol marginalia-annotate-symbol builtin none))))
+  :config
+  ;; 性能优化：延迟文件大小计算
+  (setq marginalia-field-width 80)
+
+  ;; 自定义某些类别的注解
+  (with-eval-after-load 'project
+    (add-to-list 'marginalia-command-categories
+                 '(project-find-file . file))))
 
 ;; Add icons to completion candidates
 (use-package nerd-icons-completion
   :ensure t
-  :hook (marginalia-mode . nerd-icons-completion-marginalia-setup))
-#+end_src
-
-*** Consult & Embark
-#+begin_src emacs-lisp
+  :after (marginalia nerd-icons)
+  :hook (marginalia-mode . nerd-icons-completion-marginalia-setup)
+  :config
+  ;; 性能优化：缓存图标
+  (nerd-icons-completion-mode 1))
 ;; ------------------------------------------------------------------
 ;; consult-dir – quick directory switching within consult
 ;; ------------------------------------------------------------------
@@ -1222,6 +1220,7 @@ Missing ones are created once; this function removes itself from
   :bind (;; full bindings list
          ([remap describe-bindings] . embark-bindings)
          :map minibuffer-local-map
+         ("C-;"     . embark-dwim)
          ("M-o"     . embark-act)          ; act on candidate
          ("C-c C-c" . embark-export)       ; export to writable buffer
          ("M-."     . my/embark-preview)   ; preview without quitting
@@ -1296,7 +1295,12 @@ Missing ones are created once; this function removes itself from
   :after embark
   :bind (:map minibuffer-mode-map
          ("C-c C-o" . embark-export))   ; same as above, redundant but clear
-  :hook (embark-collect-mode . consult-preview-at-point-mode))
+  :hook (embark-collect-mode . consult-preview-at-point-mode)
+  :config
+  ;; 优化：自动 wgrep 模式
+  (with-eval-after-load 'wgrep
+    (setq wgrep-auto-save-buffer t)
+    (setq wgrep-change-readonly-file t)))
 #+end_src
 *** 自动补全
 #+begin_src emacs-lisp
@@ -1326,7 +1330,6 @@ Missing ones are created once; this function removes itself from
   ;; enable Corfu everywhere except listed modes
   (setq global-corfu-modes '((not erc-mode circe-mode help-mode
                                   org-mode gud-mode vterm-mode) t))
-
   :bind (:map corfu-map
          ("<escape>" . corfu-quit)
          ("TAB"      . corfu-next)
@@ -1343,7 +1346,6 @@ Missing ones are created once; this function removes itself from
   ;; quit completion before saving
   (add-hook 'before-save-hook #'corfu-quit)
   (advice-add #'persistent-scratch-save :before #'corfu-quit)
-
   ;; promote corfu popup into minibuffer when needed
   (defun corfu-move-to-minibuffer ()
     "Move Corfu completion to minibuffer with Consult."
@@ -1362,8 +1364,6 @@ Missing ones are created once; this function removes itself from
   :after corfu
   :init
   (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
-
-
 ;; ------------------------------------------------------------------
 ;; CAPF backends
 ;; ------------------------------------------------------------------
@@ -1381,7 +1381,6 @@ Missing ones are created once; this function removes itself from
   (add-hook 'emacs-lisp-mode-hook
             (lambda () (add-to-list 'completion-at-point-functions #'cape-elisp-block)))
   (add-to-list 'completion-at-point-functions #'cape-keyword))
-
 
 ;; ------------------------------------------------------------------
 ;; Yasnippet integration
@@ -2201,55 +2200,6 @@ Return absolute path."
   (setq org-appear-autoentities t)
   (setq org-appear-autokeywords t)
   (setq org-appear-inside-latex t))
-(use-package org-modern
-  :ensure t
-  :defer t ; 完全延迟加载，直到 org-mode 触发
-  :hook
-  ((org-mode . org-modern-mode)
-   (org-agenda-finalize . org-modern-agenda))
-  :custom
-  (org-tags-column 0)
-  (org-special-ctrl-a/e t)
-  (org-insert-heading-respect-content t)
-  (org-modern-keyword t)
-  (org-modern-table-horizontal 0.2)
-  (org-modern-tag t)
-  (org-modern-timestamp nil)
-  (org-modern-table t)
-  (org-modern-priority t)
-  (custom-set-faces
-   '(org-modern-symbol ((t (:height 1.0 :foreground "#81A1C1"))))
-   '(org-modern-tag ((t (:background "#3B4252" :foreground "#ECEFF4"
-                         :height 1.0 :weight regular :box nil))))
-   '(org-modern-priority ((t (:height 1.0 :inherit org-priority))))
-   '(org-modern-date-active ((t (:background "#434C5E" :foreground "#88C0D0"
-                                 :height 1.0 :box nil))))
-   '(org-modern-date-inactive ((t (:background "#3B4252" :foreground "#4C566A"
-                                   :height 1.0 :box nil))))
-   '(org-modern-time-active ((t (:inherit org-modern-date-active))))
-   '(org-modern-time-inactive ((t (:inherit org-modern-date-inactive)))))
-  ;; 行间距优化
-  (defun my/org-modern-spacing ()
-    (setq-local line-spacing 0.15))
-  (add-hook 'org-modern-mode-hook #'my/org-modern-spacing)
-  :config
-  (setq
-   ;; 标题星号 - 渐进式圆形
-   org-modern-star '("◉" "○" "◈" "◇" "⬡" "⬢")
-   ;; 列表符号 - 统一箭头系
-   org-modern-list '((43 . "▶")   ;; + 实心三角
-                     (45 . "▸")   ;; - 空心三角
-                     (42 . "•"))  ;; * 圆点
-   ;; 复选框 - 统一方形
-   org-modern-checkbox
-   '((88 . "☑")   ;; [X] 完成
-     (45 . "◫")   ;; [-] 进行中
-     (32 . "☐"))  ;; [ ] 未完成
-   ;; LaTeX 片段 - 数学符号
-   org-modern-latex
-   '((t . t)
-     ("\$" "⁅" "⁆")
-     ("\$$" "⟦" "⟧"))))
 (use-package org-faces
   :ensure nil
   :after org
@@ -2357,7 +2307,8 @@ MSG: 提醒消息"
 ;; 导出 HTML 时自动追加 org.css
 (with-eval-after-load 'ox-html
   (setq org-html-head-extra
-        "<link rel=\"stylesheet\" type=\"text/css\" href=\"https://gongzhitaao.org/orgcss/org.css\"/>"))
+        (format "<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\"/>"
+                (expand-file-name "org.css" user-emacs-directory))))
 (with-eval-after-load 'ox-latex
   (setq org-latex-pdf-process '("latexmk -xelatex -quiet -shell-escape -f %f"))
   (push '(
@@ -2372,6 +2323,10 @@ MSG: 提醒消息"
           ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))
         org-latex-classes))
 #+end_src
+
+#+RESULTS:
+| \documentclass[lang=cn]{article} |
+
 *** Org引用配置
 #+begin_src emacs-lisp
 (use-package oc
@@ -2724,6 +2679,7 @@ MSG: 提醒消息"
   (setf (alist-get 'ess-r-mode apheleia-mode-alist) 'air)
   ;; BibTeX mode
   (setf (alist-get 'bibtex-mode apheleia-mode-alist) 'bibtex-tidy)
+  (add-hook 'org-src-mode-hook #'apheleia-mode)
   ;; 启用全局模式
   (apheleia-global-mode +1))
 #+end_src

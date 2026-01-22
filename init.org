@@ -287,8 +287,10 @@ Missing ones are created once; this function removes itself from
         panel-min-left-padding 10                   ; left margin (columns)
         panel-path-max-length 20                    ; truncate long paths
         ;; Geo-coordinates for weather / sunrise: Dalian, China
-        panel-latitude  38.9140
-        panel-longitude 121.6147
+        ;;panel-latitude  38.9140
+        panel-latitude 46.58333
+        ;;panel-longitude 121.6147
+        panel-longtitude 125.0
         ;; Custom header image
         panel-image-file   (locate-user-emacs-file "etc/bitmap.png")
         panel-image-width  400
@@ -637,7 +639,8 @@ Missing ones are created once; this function removes itself from
   ;; *scratch* starts in Lisp-Interaction
   ;; ------------------------------------------------------------------
   (initial-major-mode 'lisp-interaction-mode)
-
+  (tramp-persistency-file-name
+   (expand-file-name "etc/tramp" user-emacs-directory))
   :init
   ;; ------------------------------------------------------------------
   ;; Create runtime directories once
@@ -930,7 +933,7 @@ Missing ones are created once; this function removes itself from
   :ensure t
   :hook (after-init . global-so-long-mode))
 #+end_src
-*** Hideshow
+*** Hideshow & auto-fill
 #+BEGIN_SRC emacs-lisp
 (use-package hideshow
   :ensure nil
@@ -2916,7 +2919,12 @@ MSG: 提醒消息"
   :config
   (setq rainbow-delimiters-max-face-count 5))
 (use-package prog-mode
-  :hook (prog-mode . display-fill-column-indicator-mode))
+  :hook (prog-mode . display-fill-column-indicator-mode)
+  :custom
+  (setq-local truncate-lines nil)      ; 关闭硬截断
+  (setq-local visual-fill-column-width 80)
+  (setq-local visual-fill-column-center-text nil)
+  (visual-line-mode 1))
 (use-package indent-bars
   :ensure t
   :hook (python-ts-mode . indent-bars-mode))

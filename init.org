@@ -1675,7 +1675,7 @@ Missing ones are created once; this function removes itself from
   ((org-mode . (lambda ()
                  (lazytab-mode 1)               ; TAB cycles headings/src blocks
                  (visual-line-mode 1)           ; soft wrap long lines
-                 (turn-on-org-cdlatex)          ; fast LaTeX math snippets
+                 ;;(turn-on-org-cdlatex)          ; fast LaTeX math snippets
                  (yas-minor-mode 1)             ; snippets
                  (my/add-latex-in-org-mode-expansions)
                  ;; one-time emphasis regexp optimisation

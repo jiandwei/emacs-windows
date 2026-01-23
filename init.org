@@ -389,37 +389,11 @@ Missing ones are created once; this function removes itself from
 (use-package doom-modeline
   :ensure t
   :hook (after-init . doom-modeline-mode)
-  :custom
-  ;; ========== Core Display ==========
-  (doom-modeline-height 28)
-  (doom-modeline-bar-width 4)
-  (doom-modeline-window-width-limit 85)
-  (doom-modeline-buffer-file-name-style 'relative-from-project)
-
-  ;; ========== Icons ==========
-  (doom-modeline-icon t)
-  (doom-modeline-major-mode-icon t)
-  (doom-modeline-major-mode-color-icon t)
-  (doom-modeline-buffer-state-icon t)
-  (doom-modeline-buffer-modification-icon t)
-
-  ;; ========== Integrations ==========
-  (doom-modeline-lsp t)
-  (doom-modeline-lsp-icon t)
-  (doom-modeline-vcs-max-length 20)
-  (doom-modeline-check-simple-format t)
-  (doom-modeline-project-detection 'auto)
-  ;; ========== Workspace ==========
-  (doom-modeline-persp-name t)
-  (doom-modeline-persp-icon t)
-  ;; ========== Text Modes ==========
-  (doom-modeline-enable-word-count t)
-  (doom-modeline-continuous-word-count-modes
-   '(markdown-mode gfm-mode org-mode text-mode))
-  ;; ========== Hide Clutter ==========
-  (doom-modeline-buffer-encoding nil)
-  (doom-modeline-indent-info nil)
-  (doom-modeline-minor-modes nil))
+  :config
+   (setq doom-modeline-buffer-file-name-style 'truncate-upto-project)
+   (setq doom-modeline-icon t)
+   (setq doom-modeline-bar-width 4)
+   (setq doom-modeline-major-mode-color-icon t))
 (use-package nerd-icons
   :ensure t
   :defer t)   ; loaded on-demand by dired, ibuffer, etc.
@@ -1673,9 +1647,9 @@ Missing ones are created once; this function removes itself from
   :mode ("\\.org\\'" . org-mode)
   :hook
   ((org-mode . (lambda ()
+                 (face-remap-add-relative 'bold :foreground "#0080ff")
                  (lazytab-mode 1)               ; TAB cycles headings/src blocks
                  (visual-line-mode 1)           ; soft wrap long lines
-                 ;;(turn-on-org-cdlatex)          ; fast LaTeX math snippets
                  (yas-minor-mode 1)             ; snippets
                  (my/add-latex-in-org-mode-expansions)
                  ;; one-time emphasis regexp optimisation

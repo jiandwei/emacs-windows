@@ -78,7 +78,6 @@
 
 ;; Disable versioned suffixes (e.g. .el.gz) to simplify loading.
 (setq load-file-rep-suffixes '(""))
-
 (provide 'early-init)
 ;;; early-init.el ends here
 #+end_src
@@ -388,12 +387,12 @@ Missing ones are created once; this function removes itself from
 #+begin_src emacs-lisp
 (use-package doom-modeline
   :ensure t
-  :hook (after-init . doom-modeline-mode)
+  :hook after-init
   :config
-   (setq doom-modeline-buffer-file-name-style 'truncate-upto-project)
-   (setq doom-modeline-icon t)
-   (setq doom-modeline-bar-width 4)
-   (setq doom-modeline-major-mode-color-icon t))
+  (setq doom-modeline-buffer-file-name-style 'truncate-upto-project)
+  (setq doom-modeline-icon t)
+  (setq doom-modeline-bar-width 4)
+  (setq doom-modeline-major-mode-color-icon t))
 (use-package nerd-icons
   :ensure t
   :defer t)   ; loaded on-demand by dired, ibuffer, etc.
@@ -2092,19 +2091,31 @@ Creates: Figure/heading-name/YYYYMMDD_HHMMSS.png"
                                "* 关键数据"
                                "\n\n"))
           (文献 . ,(concat "* 文献信息"
-                           "\n** 作者"
-                           "\n** 发表时间"
                            "\n** 期刊/会议"
                            "\n\n"
                            "* 主要内容"
                            "\n\n"
                            "* 关键观点"
                            "\n\n"
-                           "* 批判性思考"
+                           "* 逻辑过程"
                            "\n\n"
-                           "* 与已有笔记的关联"
+                           "* 本文发现"
+                           "\n\n"
+                           "* 使用的方法"
+                           "\n\n"
+                           "* 使用的数据"
+                           "\n\n"
+                           "* 机制分析"
                            "\n\n"))
           (草稿 . ,(concat "* 大纲"
+                           "\n\n"
+                           "** 理论逻辑"
+                           "\n\n"
+                           "** 数据"
+                           "\n\n"
+                           "** 假设"
+                           "\n\n"
+                           "** 模型"
                            "\n\n"
                            "* 初稿"
                            "\n\n"
@@ -2402,13 +2413,13 @@ MSG: 提醒消息"
             (setq appt-time-msg-list nil)
             (org-agenda-to-appt t))
           (let ((count-after (length appt-time-msg-list)))
-            (message "✅ 约会提醒已更新: %d 个事项 %s"
+            (message "约会提醒已更新: %d 个事项 %s"
                      count-after
                      (if (> count-after count-before)
                          (format "(新增 %d)" (- count-after count-before))
                        ""))))
       (error
-       (message "❌ 加载约会提醒时出错: %s" (error-message-string err))
+       (message "加载约会提醒时出错: %s" (error-message-string err))
        nil)))
 
   ;; 定时更新（每小时）
@@ -3231,7 +3242,7 @@ MSG: 提醒消息"
         reftex-cite-format 'biblatex))
 #+end_src
 ** 工具集成
-*** Emacs 集成 GPG
+*** Gptel
 #+begin_src emacs-lisp
 (use-package epa-file
   :ensure nil  ;; Emacs 内置
@@ -3245,9 +3256,7 @@ MSG: 提醒消息"
   :config
   (setq auth-sources (list(locate-user-emacs-file "authinfo.gpg")))
   (setq auth-source-cache-expiry nil))
-#+end_src
-*** GPTel
-#+begin_src emacs-lisp
+
 (use-package gptel
   :ensure t
   :commands (gptel gptel-send gptel-menu gptel-abort)
@@ -3265,7 +3274,8 @@ MSG: 提醒消息"
           ("Deep Seek" .
            ,(gptel-make-deepseek "DeepSeek"
               :stream t
-              :key #'gptel-api-key-from-auth-source))
+              :key #'gptel-api-key-from-auth-source
+              :models '(deepseek-reasoner deepseek-chat)))
           ("Aliyun Bailian" .
            ,(gptel-make-openai "Aliyun Bailian"
               :host "dashscope.aliyuncs.com"

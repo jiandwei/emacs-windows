@@ -2823,7 +2823,7 @@ MSG: 提醒消息"
   ;; 启用全局模式
   (apheleia-global-mode +1))
 #+end_src
-*** eglot-mode
+*** EGLOT-MODE
 #+begin_src emacs-lisp
 (use-package eglot
   :hook ((prog-mode . (lambda ()

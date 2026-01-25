@@ -246,35 +246,168 @@ blockquote {
 }
 
 /* 表格 (Table) */
+/* =========================================
+   表格样式优化 - 协调版
+   ========================================= */
+
+/* 基础表格容器 */
+.table-container {
+    margin: 2.5rem auto;
+    max-width: 100%;
+    overflow-x: auto;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border-color);
+    background: var(--bg-code);
+}
+
+/* 表格主体 */
 table {
     border-collapse: separate;
     border-spacing: 0;
     width: 100%;
-    margin: 2rem 0;
-    overflow-x: auto;
-    display: block; /* 响应式 */
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius);
+    margin: 0;
+    font-size: 0.95em;
+    line-height: 1.6;
+    background: transparent;
 }
 
-th, td {
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--border-color);
-    text-align: center;
-    vertical-align: middle;  /* 垂直居中 */
+/* 表头样式 */
+thead {
+    background: linear-gradient(180deg,
+        rgba(59, 130, 246, 0.15) 0%,
+        rgba(59, 130, 246, 0.08) 100%);
+    border-bottom: 2px solid var(--color-primary);
 }
 
 th {
-    background-color: var(--bg-code);
+    padding: 1rem 1.25rem;
     font-weight: 600;
     color: var(--fg-heading);
+    text-align: center;
+    vertical-align: middle;
     border-right: 1px solid var(--border-color);
+    border-bottom: 2px solid var(--color-primary);
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+    font-size: 0.9em;
+    text-transform: uppercase;
 }
-th:last-child { border-right: none; }
 
-td { border-right: 1px solid var(--border-color); }
-td:last-child { border-right: none; }
-tr:last-child td { border-bottom: none; }
+th:last-child {
+    border-right: none;
+}
+
+/* 表格主体行 */
+tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+tbody tr:nth-child(even) {
+    background-color: rgba(148, 163, 184, 0.03);
+}
+
+tbody tr:hover {
+    background-color: rgba(59, 130, 246, 0.06);
+}
+
+/* 单元格样式 */
+td {
+    padding: 0.875rem 1.25rem;
+    text-align: center;
+    vertical-align: middle;
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    color: var(--fg-text);
+}
+
+td:last-child {
+    border-right: none;
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* 特殊列样式 - 数学公式列左对齐 */
+td:nth-child(2),
+th:nth-child(2) {
+    text-align: left;
+    font-family: var(--font-mono);
+    letter-spacing: -0.01em;
+}
+
+/* 目标列突出显示 */
+td:last-child,
+th:last-child {
+    background: rgba(59, 130, 246, 0.04);
+    font-weight: 500;
+}
+
+/* 深色模式优化 */
+@media (prefers-color-scheme: dark) {
+    thead {
+        background: linear-gradient(180deg,
+            rgba(59, 130, 246, 0.25) 0%,
+            rgba(59, 130, 246, 0.12) 100%);
+    }
+
+    th {
+        color: #e2e8f0;
+        border-bottom-color: #60a5fa;
+    }
+
+    tbody tr:nth-child(even) {
+        background-color: rgba(148, 163, 184, 0.05);
+    }
+
+    tbody tr:hover {
+        background-color: rgba(96, 165, 250, 0.1);
+    }
+
+    td {
+        color: #cbd5e1;
+    }
+}
+
+/* 小型表格居中显示 */
+table.small-table {
+    width: auto;
+    margin: 2rem auto;
+    min-width: 400px;
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+    .table-container {
+        margin: 1.5rem -1rem;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
+
+    th, td {
+        padding: 0.75rem 1rem;
+        font-size: 0.9em;
+    }
+
+    th {
+        white-space: normal;
+        font-size: 0.85em;
+    }
+}
+
+/* 打印优化 */
+@media print {
+    .table-container {
+        box-shadow: none;
+        border: 1px solid #ccc;
+    }
+
+    thead {
+        background: #f0f0f0 !important;
+    }
+}
 
 /* 图片 */
 figure { margin: 2rem 0; text-align: center; }
@@ -283,6 +416,8 @@ img {
     height: auto;
     border-radius: var(--radius);
     box-shadow: var(--shadow-card);
+    display: block;           /* 新增 */
+    margin: 0 auto;           /* 新增 */
 }
 figcaption {
     margin-top: 0.8em;

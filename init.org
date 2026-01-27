@@ -145,6 +145,13 @@
 ;; 24-hour clock in modeline ---------------------------------------------------
 (setq display-time-24hr-format t)
 
+;; 将 Git for Windows 的 usr\bin 目录添加到执行路径
+(add-to-list 'exec-path "D:/Apps/Scoop/apps/git/current/usr/bin/")
+;; 可选：同时添加 mingw64\bin 目录以确保万无一失
+(add-to-list 'exec-path "D:/Apps/Scoop/apps/git/current/mingw64/bin/")
+;; 此外，可以将该目录添加到系统的 PATH 环境变量前段
+(setenv "PATH" (concat "D:\\Apps\\Scoop\\apps\\git\\current\\usr\\bin;" (getenv "PATH")))
+
 ;; Garbage-Collection Magic Hack (gcmh) ---------------------------------------
 (use-package gcmh
   :ensure t
@@ -748,12 +755,7 @@ Missing ones are created once; this function removes itself from
               (modify-syntax-entry ?_ "w")))
 
   :config
-  ;; 将 Git for Windows 的 usr\bin 目录添加到执行路径
-  (add-to-list 'exec-path "D:/Apps/Scoop/apps/git/current/usr/bin/")
-  ;; 可选：同时添加 mingw64\bin 目录以确保万无一失
-  (add-to-list 'exec-path "D:/Apps/Scoop/apps/git/current/mingw64/bin/")
-  ;; 此外，可以将该目录添加到系统的 PATH 环境变量前段
-  (setenv "PATH" (concat "D:\\Apps\\Scoop\\apps\\git\\current\\usr\\bin;" (getenv "PATH")))
+
   ;; ------------------------------------------------------------------
   ;; Turn on window-divider mode and hide the pixels
   ;; ------------------------------------------------------------------
@@ -2561,36 +2563,28 @@ MSG: 提醒消息"
 ** 编程语言
 *** Python的配置
 #+begin_src emacs-lisp
-(use-package uv-python
+(use-package python-ts-mode
+  :ensure t
   :mode ("\\.py\\'" . python-ts-mode)
-  :defer t
   :init
   ;; 基础 Python 设置
-  (setq python-indent-offset 4
-        python-shell-completion-native-enable nil)
+  (setq
+   python-shell-interpreter "D:/Apps/Env/.venv/Scripts/python.exe"
+   python-shell-virtualenv-root "D:/Apps/Env/.venv"
+   python-indent-offset 4
+   python-shell-completion-native-enable nil)
   ;; 禁用内置 flymake
   (add-hook 'python-ts-mode-hook
             (lambda ()
               (remove-hook 'flymake-diagnostic-functions 'python-flymake t)))
   :hook
-  ((python-mode python-ts-mode) . uv-python-mode)
   ((python-mode python-ts-mode) . display-line-numbers-mode)
-  :custom
-  (uv-python-venv-dir ".venv")
-  (uv-python-auto-activate t)
-  :bind (:map python-ts-mode-map
-         ("C-c v a" . uv-python-activate)
-         ("C-c v d" . uv-python-deactivate)
-         ("C-c v s" . uv-python-switch)
-         ("C-c v c" . uv-python-clear-cache))
   :config
   ;; 为py配置服务器
   (with-eval-after-load 'eglot
     (add-to-list 'eglot-server-programs
                  '((python-ts-mode python-mode)
-                   . ("ty" "server"))))
-  ;; 启用虚拟环境检测
-  (uv-python-setup))
+                   . ("ty" "server")))))
 (use-package flymake-ruff
   :ensure t
   :hook (python-base-mode . flymake-ruff-load))

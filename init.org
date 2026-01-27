@@ -3350,14 +3350,6 @@ MSG: 提醒消息"
       transient-values-file (locate-user-emacs-file "etc/transient/values.el")
       transient-history-file (locate-user-emacs-file "etc/transient/history.el"))
 #+end_src
-*** Vundo
-#+begin_src emacs-lisp
-(use-package vundo
-  :ensure t
-  :bind ("C-x u" . vundo)
-  :config
-  (setq vundo-glyph-alist vundo-unicode-symbols))
-#+end_src
 *** 日历配置
 #+begin_src emacs-lisp
 (use-package cal-china-x

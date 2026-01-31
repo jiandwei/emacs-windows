@@ -1753,13 +1753,13 @@
       ;; -------------------- Custom Emphasis Parsing --------------------
       (defun my/org-element--parse-generic-emphasis (mark type)
         "Parse emphasis object at point with better Unicode support.
-  MARK is the delimiter string (e.g., \"*\", \"/\", \"_\").
-  TYPE is a symbol: `bold', `code', `italic', `strike-through',
-  `underline', or `verbatim'.
-  This override adds support for:
-  - Chinese and other non-ASCII characters
-  - Better boundary detection
-  - Improved whitespace handling"
+      MARK is the delimiter string (e.g., \"*\", \"/\", \"_\").
+      TYPE is a symbol: `bold', `code', `italic', `strike-through',
+      `underline', or `verbatim'.
+      This override adds support for:
+      - Chinese and other non-ASCII characters
+      - Better boundary detection
+      - Improved whitespace handling"
         (save-excursion
           (let ((origin (point)))
             (unless (bolp) (forward-char -1))
@@ -1799,8 +1799,8 @@
       ;; -------------------- Enhanced Emphasis Faces --------------------
       (defun my/org-do-emphasis-faces (limit)
         "Apply emphasis faces with improved Unicode and Chinese support.
-  This function runs through the buffer up to LIMIT and applies
-  appropriate faces to emphasized text."
+      This function runs through the buffer up to LIMIT and applies
+      appropriate faces to emphasized text."
         (let ((quick-re (format "\\([%s]\\|^\\)\\([~=*/_+]\\)"
                                 (car org-emphasis-regexp-components))))
           (catch :exit
@@ -1926,7 +1926,7 @@
     ;; -------------------- Path Generator --------------------
     (defun my/org-yank-image-file-name ()
       "Generate organized figure path under current heading.
-  Creates: Figure/heading-name/YYYYMMDD_HHMMSS.png"
+      Creates: Figure/heading-name/YYYYMMDD_HHMMSS.png"
       (unless (buffer-file-name)
         (user-error "Buffer must be saved before inserting images"))
 
@@ -2025,11 +2025,11 @@
     :config
     (setq
      ;; 标题星号 - 渐进式圆形
-     org-modern-star '("◉" "○" "◈" "◇" "⬡" "⬢")
+     org-modern-star '("◉" "○" "✸" "✿")
      ;; 列表符号 - 统一箭头系
-     org-modern-list '((43 . "▶")   ;; + 实心三角
-                       (45 . "▸")   ;; - 空心三角
-                       (42 . "•"))  ;; * 圆点
+     org-modern-list '((43 . "●")
+                       (45 . "○")
+                       (42 . "·"))
      ;; 复选框 - 统一方形
      org-modern-checkbox
      '((88 . "☑")   ;; [X] 完成

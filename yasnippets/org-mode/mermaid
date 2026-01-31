@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: Mermaid Chart with Morandi Colors
+# key: mm
+# --
+#+begin_export html
+<div class="mermaid">
+${1:$$(yas-choose-value '("graph LR" "graph TD" "graph TB" "graph RL" "sequenceDiagram" "gantt" "classDiagram" "stateDiagram-v2" "erDiagram" "journey" "pie" "flowchart LR" "flowchart TD"))}
+$0
+    %% ${2:title}
+    ${3:content}
+</div>
+#+end_export

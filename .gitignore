@@ -29,3 +29,4 @@ tramp
 init.el
 /*.el
 /transient/
+/url/

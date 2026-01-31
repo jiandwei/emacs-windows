@@ -2449,15 +2449,23 @@
   ;; 导出 HTML 时自动追加 org.css
   (with-eval-after-load 'ox-html
     (setq org-html-head-extra
-          (format "<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\"/>"
-                  (expand-file-name "org.css" user-emacs-directory))))
+          (concat
+           ;; 1. 本地 CSS
+           (format "<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\"/>\n"
+                   (expand-file-name "org.css" user-emacs-directory))
+           ;; 2. Mermaid.js CDN（仅加载库，不初始化）
+           "<script src=\"https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js\"></script>\n"
+           ;; 3. 本地 org.js（包含初始化、交互功能）
+           ;; 使用 defer 确保在 CDN 加载后执行
+           (format "<script src=\"%s\" defer></script>"
+                   (expand-file-name "org.js" user-emacs-directory)))))
   (with-eval-after-load 'ox-latex
     (setq org-latex-pdf-process '("latexmk -xelatex -quiet -shell-escape -f %f"))
     (push '(
             "\\documentclass[lang=cn]{article}
-                   [NO-DEFAULT-PACKAGES]
-                   [PACKAGES]
-                   [EXTRA]"
+                       [NO-DEFAULT-PACKAGES]
+                       [PACKAGES]
+                       [EXTRA]"
             ("\\section{%s}" . "\\section*{%s}")
             ("\\subsection{%s}" . "\\subsection*{%s}")
             ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
@@ -2465,9 +2473,6 @@
             ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))
           org-latex-classes))
 #+end_src
-
-#+RESULTS:
-| \documentclass[lang=cn]{article} |
 
 *** Org引用配置
 #+begin_src emacs-lisp

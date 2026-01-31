@@ -325,7 +325,113 @@ dd {
   border-left: 2px solid var(--border-color);
   padding-left: 1em;
 }
+/* -------------------------------------------
+   Mermaid 流程图样式美化
+   ------------------------------------------- */
+.mermaid {
+  display: block;
+  margin: 2em auto;
+  padding: 1.5em;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px var(--shadow);
+  overflow-x: auto;
+  text-align: center;
+  transition: all 0.3s ease;
+}
 
+/* 流程图内文字 */
+.mermaid text,
+.mermaid tspan {
+  font-family: var(--font-sans) !important;
+  font-size: 14px !important;
+  fill: var(--text-primary) !important;
+}
+
+/* 节点样式 */
+.mermaid .node rect,
+.mermaid .node circle,
+.mermaid .node ellipse,
+.mermaid .node polygon {
+  fill: var(--bg-primary) !important;
+  stroke: var(--morandi-blue) !important;
+  stroke-width: 2px !important;
+  filter: drop-shadow(0 2px 4px var(--shadow));
+}
+
+/* 边线 */
+.mermaid .edgePath .path {
+  stroke: var(--morandi-sage) !important;
+  stroke-width: 1.5px !important;
+  stroke-linecap: round;
+}
+
+/* 箭头 */
+.mermaid .arrowheadPath {
+  fill: var(--morandi-sage) !important;
+}
+
+/* 子图样式 */
+.mermaid .cluster rect {
+  fill: rgba(122, 143, 163, 0.08) !important;
+  stroke: var(--morandi-warm) !important;
+  stroke-dasharray: 5, 5;
+  stroke-width: 1.5px;
+}
+
+/* 标签背景 */
+.mermaid .label {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* 悬停效果 */
+.mermaid:hover {
+  box-shadow: 0 6px 20px var(--shadow-strong);
+  transform: translateY(-2px);
+}
+
+/* 代码块标签 */
+pre.src-mermaid::before {
+  content: "流程图";
+  position: absolute;
+  top: -12px;
+  left: 1em;
+  background: var(--morandi-blue);
+  color: var(--bg-primary);
+  padding: 0.2em 0.8em;
+  border-radius: 12px;
+  font-size: 0.75em;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  box-shadow: 0 2px 4px var(--shadow);
+}
+
+pre.src-mermaid {
+  position: relative;
+  padding-top: 2em;
+  background-color: var(--code-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .mermaid {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color);
+  }
+
+  .mermaid .node rect,
+  .mermaid .node circle {
+    fill: var(--bg-tertiary) !important;
+    stroke: var(--morandi-blue) !important;
+  }
+
+  .mermaid .edgePath .path {
+    stroke: var(--morandi-warm) !important;
+  }
+}
 /* -------------------------------------------
    引用块
    ------------------------------------------- */
@@ -838,4 +944,96 @@ img {
   blockquote {
     margin: 1.5em 0.5em;
   }
+}
+
+/* -------------------------------------------
+   可折叠目录样式
+   ------------------------------------------- */
+
+/* 目录内容区域过渡动画 */
+#text-table-of-contents {
+    overflow: hidden;
+    max-height: 2000px; /* 足够大的值以容纳内容 */
+    opacity: 1;
+    transform: translateY(0);
+    transition: max-height 0.4s ease-out,
+                opacity 0.3s ease-out,
+                transform 0.3s ease-out,
+                margin 0.3s ease;
+}
+
+/* 折叠状态 */
+#text-table-of-contents.toc-collapsed {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-10px);
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+/* 目录标题交互反馈 */
+#table-of-contents h2 {
+    position: relative;
+    transition: color 0.2s ease, background-color 0.2s;
+    padding: 0.5em 1em 0.5em 2em;
+    margin-left: -1em;
+    margin-right: -1em;
+    border-radius: 6px;
+}
+
+#table-of-contents h2:hover {
+    color: var(--morandi-blue);
+    background-color: rgba(122, 143, 163, 0.1);
+}
+
+#table-of-contents h2:active {
+    background-color: rgba(122, 143, 163, 0.2);
+    transform: translateY(1px);
+}
+
+/* 粘性目录的折叠适配（大屏幕） */
+@media (min-width: 1200px) {
+    #table-of-contents {
+        transition: max-height 0.4s ease;
+    }
+
+    #text-table-of-contents.toc-collapsed {
+        display: none; /* 固定定位时直接隐藏更流畅 */
+    }
+
+    /* 折叠时减小目录容器高度 */
+    #table-of-contents:has(#text-table-of-contents.toc-collapsed) {
+        max-height: 60px; /* 仅显示标题 */
+        overflow: hidden;
+    }
+}
+
+/* 打印时强制展开目录（不要折叠状态） */
+@media print {
+    #text-table-of-contents {
+        max-height: none !important;
+        opacity: 1 !important;
+        display: block !important;
+    }
+
+    #table-of-contents h2::before,
+    #table-of-contents h2 span {
+        display: none !important; /* 隐藏箭头 */
+    }
+}
+
+/* 目录节点折叠动画（可选：支持二级目录折叠） */
+#text-table-of-contents ul ul {
+    overflow: hidden;
+    max-height: 1000px;
+    transition: max-height 0.3s ease;
+}
+
+/* 响应式优化：移动端目录默认折叠（可选） */
+@media (max-width: 768px) {
+    #text-table-of-contents {
+        max-height: 300px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
 }

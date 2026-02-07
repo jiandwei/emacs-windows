@@ -1,400 +1,464 @@
+// ============================================
+// 可折叠目录管理器 (Collapsible TOC) - 修复版
+// ============================================
+const TOCManager = {
+  toc: null,
+  tocList: null,
+  savedState: null,
 
-/**
- * Org Mode HTML Export Enhancements
- * 包含：Mermaid 初始化、交互功能、莫兰迪主题适配
- */
+  init() {
+    this.toc = document.getElementById('table-of-contents') || document.querySelector('.toc');
+    if (!this.toc) return;
 
-document.addEventListener('DOMContentLoaded', function() {
-    // 等待 Mermaid CDN 加载完成（轮询检查）
-    const checkMermaid = setInterval(function() {
-        if (typeof mermaid !== 'undefined') {
-            clearInterval(checkMermaid);
-            console.log('Mermaid loaded from CDN');
-            initMermaid();
-            initOtherFeatures();
-        }
-    }, 50);
+    this.tocList = this.toc.querySelector('ul');
+    if (!this.tocList) return;
 
-    // 超时处理（5秒后放弃）
-    setTimeout(function() {
-        clearInterval(checkMermaid);
-        if (typeof mermaid === 'undefined') {
-            showCDNError();
-        }
-    }, 5000);
-});
+    this.loadSavedState();
+    this.enhanceTOC();
+    this.setupIntersectionObserver();
+    this.restoreState();
+  },
 
-/**
- * Mermaid 初始化（莫兰迪主题）
- */
-function initMermaid() {
-    // 检测当前主题模式
-    const isDarkMode = window.matchMedia &&
-                       window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    // 莫兰迪色系配置
-    const morandiTheme = {
-        light: {
-            primaryColor: '#e8e4de',
-            primaryTextColor: '#4a4a4a',
-            primaryBorderColor: '#7a8fa3',
-            lineColor: '#8b8680',
-            secondaryColor: '#f0ede8',
-            tertiaryColor: '#f7f5f0',
-            fontFamily: '"Noto Serif CJK SC", "Source Han Serif SC", "PingFang SC", serif',
-            fontSize: '14px'
-        },
-        dark: {
-            primaryColor: '#3a3a3c',
-            primaryTextColor: '#d4ccc4',
-            primaryBorderColor: '#8a9eb0',
-            lineColor: '#9a948e',
-            secondaryColor: '#323234',
-            tertiaryColor: '#2c2c2e',
-            fontFamily: '"Noto Serif CJK SC", "Source Han Serif SC", "PingFang SC", serif',
-            fontSize: '14px'
-        }
-    };
-
-    // 初始化配置
-    mermaid.initialize({
-        startOnLoad: true,
-        theme: 'base',
-        themeVariables: isDarkMode ? morandiTheme.dark : morandiTheme.light,
-        flowchart: {
-            useMaxWidth: true,
-            htmlLabels: true,
-            curve: 'basis',
-            padding: 15
-        },
-        sequence: {
-            useMaxWidth: true,
-            diagramMarginX: 50,
-            diagramMarginY: 20
-        },
-        gantt: {
-            useMaxWidth: true,
-            barHeight: 30,
-            barGap: 4
-        }
-    });
-
-    // 清理可能残留的 Org 标记（容错处理）
-    document.querySelectorAll('.mermaid').forEach(function(el) {
-        let content = el.textContent || el.innerText;
-        if (content.includes('#+begin_src')) {
-            el.textContent = cleanOrgMarkers(content);
-        }
-    });
-
-    // 监听系统主题变化，自动切换
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
-        mermaid.initialize({
-            theme: 'base',
-            themeVariables: e.matches ? morandiTheme.dark : morandiTheme.light
-        });
-        // 重新渲染已有图表
-        document.querySelectorAll('.mermaid').forEach(function(el) {
-            if (el.getAttribute('data-processed') === 'true') {
-                const graphDefinition = el.getAttribute('data-graph-definition') || el.textContent;
-                el.removeAttribute('data-processed');
-                el.textContent = graphDefinition;
-            }
-        });
-        mermaid.init();
-    });
-}
-
-/**
- * 清理 Org 标记（容错）
- */
-function cleanOrgMarkers(text) {
-    return text
-        .replace(/#\+begin_src mermaid.*\n/g, '')
-        .replace(/#\+end_src/g, '')
-        .replace(/#\+begin_export html\n<div class="mermaid">\n/g, '')
-        .replace(/<\/div>\n#\+end_export/g, '')
-        .trim();
-}
-
-/**
- * CDN 加载失败提示
- */
-function showCDNError() {
-    const errorDiv = document.createElement('div');
-    errorDiv.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        background: #b8a8a0;
-        color: #f7f5f0;
-        text-align: center;
-        padding: 10px;
-        font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
-        z-index: 9999;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    `;
-    errorDiv.innerHTML = '⚠️ Mermaid CDN 加载失败，流程图无法显示。请检查网络连接。';
-    document.body.insertBefore(errorDiv, document.body.firstChild);
-}
-
-/**
- * 其他功能初始化
- */
-function initOtherFeatures() {
-    initBackToTop();
-    initCodeCopy();
-    initExternalLinks();
-    initImageZoom();
-}
-
-/**
- * 返回顶部按钮
- */
-function initBackToTop() {
-    const btn = document.createElement('button');
-    btn.id = 'back-to-top';
-    btn.innerHTML = '↑';
-    btn.setAttribute('aria-label', '返回顶部');
-    btn.style.cssText = `
-        position: fixed;
-        bottom: 2em;
-        right: 2em;
-        width: 40px;
-        height: 40px;
-        background: #7a8fa3;
-        color: #f7f5f0;
-        border: none;
-        border-radius: 50%;
-        cursor: pointer;
-        opacity: 0;
-        visibility: hidden;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.2em;
-        box-shadow: 0 2px 8px rgba(139, 134, 128, 0.3);
-        z-index: 1000;
-    `;
-
-    document.body.appendChild(btn);
-
-    window.addEventListener('scroll', function() {
-        if (window.pageYOffset > 300) {
-            btn.style.opacity = '0.8';
-            btn.style.visibility = 'visible';
-        } else {
-            btn.style.opacity = '0';
-            btn.style.visibility = 'hidden';
-        }
-    });
-
-    btn.addEventListener('click', function() {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-
-    // 夜间模式适配
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        btn.style.background = '#8a9eb0';
-        btn.style.color = '#2c2c2e';
-    }
-}
-
-/**
- * 代码块复制功能
- */
-function initCodeCopy() {
-    document.querySelectorAll('pre').forEach(function(pre) {
-        if (pre.querySelector('.copy-button')) return;
-
-        const btn = document.createElement('button');
-        btn.className = 'copy-button';
-        btn.innerHTML = '复制';
-        btn.style.cssText = `
-            position: absolute;
-            top: 0.5em;
-            right: 0.5em;
-            padding: 0.2em 0.8em;
-            background: #7a8fa3;
-            color: #f7f5f0;
-            border: none;
-            border-radius: 4px;
-            font-size: 0.75em;
-            cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.3s;
-            z-index: 10;
-        `;
-
-        pre.style.position = 'relative';
-        pre.appendChild(btn);
-
-        pre.addEventListener('mouseenter', () => btn.style.opacity = '0.9');
-        pre.addEventListener('mouseleave', () => btn.style.opacity = '0');
-
-        btn.addEventListener('click', function() {
-            const code = pre.querySelector('code') || pre;
-            navigator.clipboard.writeText(code.innerText).then(function() {
-                btn.innerHTML = '已复制';
-                btn.style.background = '#8a9a7e';
-                setTimeout(() => {
-                    btn.innerHTML = '复制';
-                    btn.style.background = '#7a8fa3';
-                }, 2000);
-            });
-        });
-    });
-}
-
-/**
- * 外部链接新窗口打开
- */
-function initExternalLinks() {
-    document.querySelectorAll('a[href^="http"]').forEach(function(link) {
-        if (!link.hasAttribute('target')) {
-            link.setAttribute('target', '_blank');
-            link.setAttribute('rel', 'noopener noreferrer');
-        }
-    });
-}
-
-/**
- * 图片点击放大
- */
-function initImageZoom() {
-    document.querySelectorAll('.figure img').forEach(function(img) {
-        img.style.cursor = 'zoom-in';
-        img.addEventListener('click', function() {
-            const overlay = document.createElement('div');
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0; left: 0;
-                width: 100%; height: 100%;
-                background: rgba(44, 44, 46, 0.95);
-                z-index: 9999;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: zoom-out;
-                opacity: 0;
-                transition: opacity 0.3s;
-            `;
-
-            const clone = img.cloneNode();
-            clone.style.maxWidth = '90%';
-            clone.style.maxHeight = '90%';
-            clone.style.cursor = 'zoom-out';
-
-            overlay.appendChild(clone);
-            document.body.appendChild(overlay);
-
-            setTimeout(() => overlay.style.opacity = '1', 10);
-            overlay.addEventListener('click', () => {
-                overlay.style.opacity = '0';
-                setTimeout(() => overlay.remove(), 300);
-            });
-        });
-    });
-}
-
-/**
- * 可折叠目录功能
- */
-function initCollapsibleTOC() {
-    const toc = document.getElementById('table-of-contents');
-    if (!toc) return;
-
-    const tocTitle = toc.querySelector('h2');
-    const tocContent = document.getElementById('text-table-of-contents');
-
-    if (!tocTitle || !tocContent) return;
-
-    // 添加可点击样式和箭头指示器
-    tocTitle.style.cursor = 'pointer';
-    tocTitle.style.position = 'relative';
-    tocTitle.style.paddingLeft = '1.5em';
-    tocTitle.style.userSelect = 'none';
-    tocTitle.title = '点击折叠/展开目录';
-
-    // 创建箭头图标（莫兰迪蓝色）
-    const arrow = document.createElement('span');
-    arrow.innerHTML = '▼';
-    arrow.style.cssText = `
-        position: absolute;
-        left: 0;
-        top: 50%;
-        transform: translateY(-50%);
-        transition: transform 0.3s ease;
-        font-size: 0.8em;
-        color: var(--morandi-blue);
-        display: inline-block;
-    `;
-    tocTitle.insertBefore(arrow, tocTitle.firstChild);
-
-    // 添加悬停提示文字（临时显示）
-    const hint = document.createElement('span');
-    hint.textContent = ' [折叠]';
-    hint.style.cssText = `
-        font-size: 0.6em;
-        color: var(--text-muted);
-        margin-left: 0.5em;
-        opacity: 0;
-        transition: opacity 0.3s;
-        font-weight: normal;
-    `;
-    tocTitle.appendChild(hint);
-
-    tocTitle.addEventListener('mouseenter', () => hint.style.opacity = '1');
-    tocTitle.addEventListener('mouseleave', () => hint.style.opacity = '0');
-
-    // 点击切换折叠状态
-    tocTitle.addEventListener('click', function(e) {
-        e.preventDefault();
-        const isCollapsed = tocContent.classList.toggle('toc-collapsed');
-
-        // 旋转箭头
-        arrow.style.transform = isCollapsed
-            ? 'translateY(-50%) rotate(-90deg)'
-            : 'translateY(-50%) rotate(0deg)';
-
-        hint.textContent = isCollapsed ? ' [展开]' : ' [折叠]';
-
-        // 保存用户偏好到本地存储
-        try {
-            localStorage.setItem('org-toc-collapsed', isCollapsed ? 'true' : 'false');
-        } catch (e) {
-            // 忽略隐私模式下的存储错误
-        }
-    });
-
-    // 恢复上次的折叠状态（默认展开）
+  loadSavedState() {
     try {
-        if (localStorage.getItem('org-toc-collapsed') === 'true') {
-            tocContent.classList.add('toc-collapsed');
-            arrow.style.transform = 'translateY(-50%) rotate(-90deg)';
-            hint.textContent = ' [展开]';
-        }
+      const saved = sessionStorage.getItem(config.tocStorageKey);
+      this.savedState = saved ? JSON.parse(saved) : { collapsed: false, items: {} };
     } catch (e) {
-        // 忽略
+      this.savedState = { collapsed: false, items: {} };
+    }
+  },
+
+  saveState() {
+    try {
+      const state = {
+        collapsed: this.toc.classList.contains('collapsed'),
+        items: {}
+      };
+
+      this.toc.querySelectorAll('.toc-fold-btn').forEach((btn, index) => {
+        if (btn.classList.contains('collapsed')) {
+          state.items[index] = true;
+        }
+      });
+
+      sessionStorage.setItem(config.tocStorageKey, JSON.stringify(state));
+    } catch (e) {
+      console.warn('无法保存目录状态:', e);
+    }
+  },
+
+  restoreState() {
+    if (!this.savedState) return;
+
+    if (this.savedState.collapsed) {
+      this.toc.classList.add('collapsed');
     }
 
-    // 键盘快捷键支持（Ctrl/Cmd + \ 切换目录）
-    document.addEventListener('keydown', function(e) {
-        if ((e.ctrlKey || e.metaKey) && e.key === '\\') {
-            e.preventDefault();
-            tocTitle.click();
-        }
+    const buttons = this.toc.querySelectorAll('.toc-fold-btn');
+    Object.keys(this.savedState.items || {}).forEach(index => {
+      const btn = buttons[parseInt(index)];
+      if (btn && this.savedState.items[index]) {
+        this.collapseItem(btn, false);
+      }
     });
-}
+  },
 
-// 在 initOtherFeatures() 中调用：
-function initOtherFeatures() {
-    initMermaid();
-    initBackToTop();
-    initCodeCopy();
-    initExternalLinks();
-    initImageZoom();
-    initCollapsibleTOC();  // 添加这一行
-}
+  enhanceTOC() {
+    // 包装内容
+    const content = document.createElement('div');
+    content.className = 'toc-content';
+    while (this.toc.firstChild) {
+      content.appendChild(this.toc.firstChild);
+    }
+    this.toc.appendChild(content);
+
+    // 创建头部
+    const header = document.createElement('div');
+    header.className = 'toc-header';
+    header.innerHTML = `
+      <h2>
+        <span>目录</span>
+        <span class="toc-toggle-icon">▼</span>
+      </h2>
+      <div class="toc-controls">
+        <button class="toc-btn" id="toc-expand-all" title="展开全部">⊕</button>
+        <button class="toc-btn" id="toc-collapse-all" title="收起全部">⊖</button>
+      </div>
+    `;
+
+    this.toc.insertBefore(header, content);
+
+    // 添加折叠功能到每个有子项的目录项
+    this.addFoldButtons(this.tocList);
+
+    // 事件监听
+    header.addEventListener('click', (e) => {
+      if (e.target.closest('.toc-btn')) return;
+      this.toggleTOC();
+    });
+
+    document.getElementById('toc-expand-all').addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.expandAll();
+    });
+
+    document.getElementById('toc-collapse-all').addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.collapseAll();
+    });
+
+    // 点击目录项跳转
+    this.toc.addEventListener('click', (e) => {
+      const link = e.target.closest('a');
+      if (link) {
+        e.preventDefault();
+        const targetId = link.getAttribute('href').slice(1);
+        const target = document.getElementById(targetId);
+        if (target) {
+          this.scrollTo(target);
+          history.pushState(null, null, '#' + targetId);
+        }
+      }
+    });
+  },
+
+  addFoldButtons(ul, level = 0) {
+    const items = ul.children;
+
+    Array.from(items).forEach((li, index) => {
+      const subList = li.querySelector(':scope > ul'); // 只选择直接子级ul
+      const link = li.querySelector(':scope > a'); // 只选择直接子级a
+
+      // 创建目录项容器
+      const itemDiv = document.createElement('div');
+      itemDiv.className = 'toc-item';
+
+      // 创建折叠按钮
+      const foldBtn = document.createElement('span');
+      foldBtn.className = 'toc-fold-btn';
+
+      if (subList) {
+        foldBtn.innerHTML = '▼';
+        foldBtn.tabIndex = 0;
+        foldBtn.setAttribute('role', 'button');
+        foldBtn.setAttribute('aria-label', '折叠子目录');
+
+        foldBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.toggleItem(foldBtn);
+        });
+
+        foldBtn.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            this.toggleItem(foldBtn);
+          }
+        });
+
+        // 递归处理子目录
+        this.addFoldButtons(subList, level + 1);
+      } else {
+        // 占位符，保持对齐
+        foldBtn.style.visibility = 'hidden';
+      }
+
+      // 重组DOM
+      if (link) {
+        const existingItem = li.querySelector('.toc-item');
+        if (existingItem) {
+          // 如果已经处理过，跳过
+          return;
+        }
+
+        // 将link移到itemDiv中
+        li.insertBefore(itemDiv, link);
+        itemDiv.appendChild(foldBtn);
+        itemDiv.appendChild(link);
+
+        // 如果有子列表，确保它在itemDiv之后
+        if (subList && !li.contains(subList)) {
+          li.appendChild(subList);
+        }
+      }
+    });
+  },
+
+  // 切换单个目录项（展开/收起）
+  toggleItem(btn, save = true) {
+    if (btn.classList.contains('collapsed')) {
+      this.expandItem(btn, save);
+    } else {
+      this.collapseItem(btn, save);
+    }
+  },
+
+  // 展开指定项（明确展开，不依赖当前状态）
+  expandItem(btn, save = true) {
+    const li = btn.closest('li');
+    const subList = li.querySelector(':scope > ul');
+
+    if (!subList) return;
+
+    btn.classList.remove('collapsed');
+    subList.classList.remove('collapsed');
+    btn.innerHTML = '▼';
+    btn.setAttribute('aria-label', '折叠子目录');
+
+    if (save) this.saveState();
+  },
+
+  // 收起指定项（明确收起，不依赖当前状态）
+  collapseItem(btn, save = true) {
+    const li = btn.closest('li');
+    const subList = li.querySelector(':scope > ul');
+
+    if (!subList) return;
+
+    btn.classList.add('collapsed');
+    subList.classList.add('collapsed');
+    btn.innerHTML = '▶';
+    btn.setAttribute('aria-label', '展开子目录');
+
+    if (save) this.saveState();
+  },
+
+  // 切换整个目录框的显示/隐藏
+  toggleTOC() {
+    this.toc.classList.toggle('collapsed');
+    this.saveState();
+  },
+
+  // 展开所有层级（修复版）
+  expandAll() {
+    // 先确保整体目录展开
+    if (this.toc.classList.contains('collapsed')) {
+      this.toc.classList.remove('collapsed');
+    }
+
+    // 获取所有被折叠的按钮，从深层到浅层处理（避免动画冲突）
+    const collapsedButtons = Array.from(this.toc.querySelectorAll('.toc-fold-btn.collapsed'));
+
+    // 按DOM深度排序（深的先处理）
+    collapsedButtons.sort((a, b) => {
+      const depthA = this.getDepth(a);
+      const depthB = this.getDepth(b);
+      return depthB - depthA; // 降序，深层优先
+    });
+
+    collapsedButtons.forEach(btn => {
+      this.expandItem(btn, false);
+    });
+
+    this.saveState();
+  },
+
+  // 收起所有层级（修复版）
+  collapseAll() {
+    // 获取所有展开的按钮，从浅层到深层处理
+    const expandedButtons = Array.from(this.toc.querySelectorAll('.toc-fold-btn:not(.collapsed)'));
+
+    // 过滤掉没有子列表的（占位符）
+    const validButtons = expandedButtons.filter(btn => {
+      const li = btn.closest('li');
+      return li && li.querySelector(':scope > ul');
+    });
+
+    // 按DOM深度排序（浅层先处理）
+    validButtons.sort((a, b) => {
+      const depthA = this.getDepth(a);
+      const depthB = this.getDepth(b);
+      return depthA - depthB; // 升序，浅层优先
+    });
+
+    validButtons.forEach(btn => {
+      this.collapseItem(btn, false);
+    });
+
+    this.saveState();
+  },
+
+  // 获取元素在目录树中的深度
+  getDepth(element) {
+    let depth = 0;
+    let parent = element.closest('ul');
+    while (parent && !parent.classList.contains('toc-list') && !parent.closest('#table-of-contents') === this.toc) {
+      depth++;
+      parent = parent.parentElement?.closest('ul');
+    }
+    return depth;
+  },
+
+  // 平滑滚动到锚点
+  scrollTo(element) {
+    const headerOffset = 100;
+    const elementPosition = element.getBoundingClientRect().top;
+    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+    window.scrollTo({
+      top: offsetPosition,
+      behavior: 'smooth'
+    });
+  },
+
+  // 设置交叉观察器，高亮当前章节
+  setupIntersectionObserver() {
+    const headings = document.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
+    if (headings.length === 0) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.getAttribute('id');
+          this.highlightTOCItem(id);
+        }
+      });
+    }, {
+      rootMargin: '-20% 0px -80% 0px',
+      threshold: 0
+    });
+
+    headings.forEach(heading => observer.observe(heading));
+  },
+
+  // 高亮当前目录项
+  highlightTOCItem(id) {
+    this.toc.querySelectorAll('a').forEach(link => {
+      link.classList.remove('active');
+      if (link.getAttribute('href') === '#' + id) {
+        link.classList.add('active');
+
+        // 自动展开父级
+        let parent = link.closest('ul');
+        while (parent && parent !== this.tocList) {
+          parent.classList.remove('collapsed');
+          const parentLi = parent.closest('li');
+          if (parentLi) {
+            const btn = parentLi.querySelector('.toc-fold-btn');
+            if (btn && btn.classList.contains('collapsed')) {
+              this.expandItem(btn, false);
+            }
+          }
+          parent = parent.parentElement.closest('ul');
+        }
+      }
+    });
+  }
+};
+
+// ============================================
+// Org Mode 复选框交互增强
+// ============================================
+
+const OrgCheckbox = {
+  init() {
+    this.enhanceCheckboxes();
+    this.bindEvents();
+  },
+
+  enhanceCheckboxes() {
+    // 查找所有包含 [ ] 或 [X] 的列表项
+    document.querySelectorAll('li').forEach(li => {
+      const text = li.textContent;
+      const checkboxMatch = text.match(/^(\[[ X\-]\])\s*(.+)$/);
+
+      if (checkboxMatch) {
+        li.classList.add('org-checkbox-item');
+
+        const marker = checkboxMatch[1];
+        const content = checkboxMatch[2];
+
+        let stateClass = '';
+        let checked = false;
+
+        if (marker === '[X]' || marker === '[x]') {
+          stateClass = 'org-checkbox-state-done';
+          checked = true;
+        } else if (marker === '[-]') {
+          stateClass = 'org-checkbox-state-todo';
+        } else {
+          stateClass = 'org-checkbox-state-none';
+        }
+
+        // 重构 DOM
+        const wrapper = document.createElement('label');
+        wrapper.className = 'org-checkbox-wrapper';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = checked;
+        checkbox.dataset.state = stateClass;
+
+        const visualCheckbox = document.createElement('span');
+        visualCheckbox.className = `org-checkbox ${stateClass}`;
+
+        const label = document.createElement('span');
+        label.className = 'org-checkbox-label';
+        label.textContent = content;
+
+        wrapper.appendChild(checkbox);
+        wrapper.appendChild(visualCheckbox);
+        wrapper.appendChild(label);
+
+        // 保留原始子列表（如果有）
+        const sublist = li.querySelector('ul, ol');
+        li.innerHTML = '';
+        li.appendChild(wrapper);
+        if (sublist) li.appendChild(sublist);
+      }
+    });
+  },
+
+  bindEvents() {
+    document.querySelectorAll('.org-checkbox-wrapper input[type="checkbox"]').forEach(checkbox => {
+      checkbox.addEventListener('change', (e) => {
+        const visual = e.target.nextElementSibling;
+        const isChecked = e.target.checked;
+
+        // 切换视觉状态
+        visual.classList.remove('org-checkbox-state-none', 'org-checkbox-state-done', 'org-checkbox-state-todo');
+
+        if (isChecked) {
+          visual.classList.add('org-checkbox-state-done');
+          e.target.dataset.state = 'org-checkbox-state-done';
+        } else {
+          visual.classList.add('org-checkbox-state-none');
+          e.target.dataset.state = 'org-checkbox-state-none';
+        }
+
+        // 触发自定义事件
+        e.target.dispatchEvent(new CustomEvent('orgCheckboxChange', {
+          detail: { checked: isChecked, element: e.target }
+        }));
+      });
+    });
+  },
+
+  // 获取所有复选框状态
+  getStates() {
+    const states = {};
+    document.querySelectorAll('.org-checkbox-wrapper input').forEach((cb, index) => {
+      states[index] = {
+        checked: cb.checked,
+        state: cb.dataset.state
+      };
+    });
+    return states;
+  },
+
+  // 批量设置状态
+  setStates(states) {
+    const checkboxes = document.querySelectorAll('.org-checkbox-wrapper input');
+    Object.keys(states).forEach(index => {
+      const cb = checkboxes[index];
+      if (cb) {
+        cb.checked = states[index].checked;
+        cb.dataset.state = states[index].state;
+        const visual = cb.nextElementSibling;
+        visual.className = `org-checkbox ${states[index].state}`;
+      }
+    });
+  }
+};
+
+// 初始化
+document.addEventListener('DOMContentLoaded', () => OrgCheckbox.init());

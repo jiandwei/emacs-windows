@@ -1,98 +1,95 @@
 /* ============================================
-   Org Mode HTML Export CSS - 经济学笔记专用
-   配色方案：莫兰迪色系 (Morandi Colors)
-   特性：自动适配夜间模式 (Dark Mode)
-   适配：中文排版优化
+   Morandi Theme for Org Mode HTML Export
+   莫兰迪配色经济学笔记主题
+   支持自动暗色/亮色切换与可折叠目录
    ============================================ */
 
-/* -------------------------------------------
-   颜色变量定义 - 日间模式（默认）
-   ------------------------------------------- */
+/* CSS 变量定义 - 莫兰迪色系 */
 :root {
-  /* 基础背景与文字 */
-  --bg-primary: #f7f5f0;
-  --bg-secondary: #f0ede8;
-  --bg-tertiary: #e8e4de;
-  --text-primary: #4a4a4a;
-  --text-secondary: #6b6864;
-  --text-muted: #8b8680;
-
-  /* 莫兰迪强调色 */
-  --morandi-blue: #7a8fa3;
-  --morandi-rose: #b8a8a0;
-  --morandi-green: #8a9a7e;
-  --morandi-warm: #c4b8a8;
-  --morandi-sage: #9a9a8a;
-  --morandi-lavender: #9a95a8;
+  /* 基础莫兰迪色板 */
+  --morandi-beige: #E8E3DE;
+  --morandi-warm-gray: #D4CBC4;
+  --morandi-cool-gray: #9BA4AD;
+  --morandi-sage: #8B9A8B;
+  --morandi-dusty-rose: #C4B2AB;
+  --morandi-dusty-blue: #7A8B99;
+  --morandi-mauve: #A89CA8;
+  --morandi-clay: #B5A090;
+  --morandi-charcoal: #4A4A4A;
+  --morandi-cream: #F5F1ED;
 
   /* 功能色 */
-  --border-color: #d1ccc6;
-  --border-light: #e0dcd6;
-  --code-bg: #f5f2ed;
-  --table-header: #ebe7e1;
-  --shadow: rgba(139, 134, 128, 0.15);
-  --shadow-strong: rgba(139, 134, 128, 0.25);
+  --bg-primary: #F7F4F1;
+  --bg-secondary: #FFFFFF;
+  --text-primary: #3D3D3D;
+  --text-secondary: #6B6B6B;
+  --border-color: #E0D8D0;
+  --shadow: rgba(139, 154, 139, 0.1);
 
-  /* 反色（用于按钮、标签等） */
-  --inverse-bg: #4a4a4a;
-  --inverse-text: #f7f5f0;
+  /* 强调色阶 */
+  --accent-1: #8B9A8B; /* 灰绿 - 主要强调 */
+  --accent-2: #B8A9A1; /* 粉棕 - 次要强调 */
+  --accent-3: #9BAAB8; /* 灰蓝 - 第三强调 */
+  --accent-4: #C4B2AB; /* 玫瑰灰 */
 
-  /* 字体栈 */
-  --font-serif: "Noto Serif CJK SC", "Source Han Serif SC", "SimSun", "STSong", "Noto Serif", serif;
-  --font-sans: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "WenQuanYi Micro Hei", sans-serif;
-  --font-mono: "JetBrains Mono", "Fira Code", "Sarasa Mono SC", "Noto Sans Mono CJK SC", monospace;
+  /* 状态色 */
+  --note-bg: rgba(139, 154, 139, 0.08);
+  --warning-bg: rgba(184, 169, 161, 0.12);
+  --tip-bg: rgba(155, 170, 184, 0.08);
+
+  /* 字体 */
+  --font-serif: "Noto Serif SC", "Source Han Serif SC", "SimSun", serif;
+  --font-sans: "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "Fira Code", "JetBrains Mono", "Consolas", monospace;
+
+  /* 布局 */
+  --content-width: 780px;
+  --radius: 6px;
+  --spacing: 1.8em;
+  --toc-width: 280px;
 }
 
-/* -------------------------------------------
-   夜间模式变量覆盖
-   ------------------------------------------- */
+/* 暗色模式 - 深莫兰迪色系 */
 @media (prefers-color-scheme: dark) {
   :root {
-    /* 基础背景与文字 - 深暖灰系 */
-    --bg-primary: #2c2c2e;
-    --bg-secondary: #323234;
-    --bg-tertiary: #3a3a3c;
-    --text-primary: #d4ccc4;
-    --text-secondary: #b8b0a8;
-    --text-muted: #9a948e;
-
-    /* 莫兰迪暗色版 - 提高亮度但保持低饱和度 */
-    --morandi-blue: #8a9eb0;
-    --morandi-rose: #c4b0a8;
-    --morandi-green: #9aaa8e;
-    --morandi-warm: #b0a898;
-    --morandi-sage: #a0a090;
-    --morandi-lavender: #a8a0b8;
-
-    /* 功能色暗版 */
-    --border-color: #4a4a4c;
-    --border-light: #3a3a3c;
-    --code-bg: #2a2a2c;
-    --table-header: #363638;
+    --bg-primary: #2A2A2A;
+    --bg-secondary: #323232;
+    --text-primary: #D4CBC4;
+    --text-secondary: #9B9B9B;
+    --border-color: #4A4A4A;
     --shadow: rgba(0, 0, 0, 0.3);
-    --shadow-strong: rgba(0, 0, 0, 0.5);
 
-    /* 反色调整 */
-    --inverse-bg: #d4ccc4;
-    --inverse-text: #2c2c2e;
-  }
+    --accent-1: #6B7B6B;
+    --accent-2: #8B7B73;
+    --accent-3: #6B7A8B;
+    --accent-4: #8B7B7B;
 
-  /* 夜间模式图片优化 - 降低亮度避免刺眼 */
-  img {
-    opacity: 0.9;
-    filter: brightness(0.9) contrast(1.1);
-  }
-
-  /* 夜间模式选中文字颜色 */
-  ::selection {
-    background-color: rgba(138, 158, 176, 0.4);
-    color: var(--text-primary);
+    --note-bg: rgba(107, 123, 107, 0.15);
+    --warning-bg: rgba(139, 123, 115, 0.15);
+    --tip-bg: rgba(107, 122, 139, 0.15);
   }
 }
 
-/* -------------------------------------------
-   基础重置与全局样式
-   ------------------------------------------- */
+/* 手动切换类 */
+body.dark-mode {
+  --bg-primary: #2A2A2A;
+  --bg-secondary: #323232;
+  --text-primary: #D4CBC4;
+  --text-secondary: #9B9B9B;
+  --border-color: #4A4A4A;
+  --shadow: rgba(0, 0, 0, 0.3);
+
+  --accent-1: #6B7B6B;
+  --accent-2: #8B7B73;
+  --accent-3: #6B7A8B;
+  --accent-4: #8B7B7B;
+
+  --note-bg: rgba(107, 123, 107, 0.15);
+  --warning-bg: rgba(139, 123, 115, 0.15);
+  --tip-bg: rgba(107, 122, 139, 0.15);
+}
+
+/* 基础重置 */
 * {
   margin: 0;
   padding: 0;
@@ -100,940 +97,816 @@
 }
 
 body {
-  font-family: var(--font-sans);
-  font-size: 16px;
-  line-height: 1.8;
-  color: var(--text-primary);
-  background-color: var(--bg-primary);
-  max-width: 850px;
-  margin: 0 auto;
-  padding: 3rem 2.5rem;
-  letter-spacing: 0.02em;
-  text-align: justify;
-  word-wrap: break-word;
-  hyphens: auto;
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-/* 选中文本样式（日间模式） */
-::selection {
-  background-color: rgba(156, 168, 184, 0.3);
-  color: var(--text-primary);
-}
-
-/* -------------------------------------------
-   标题层级
-   ------------------------------------------- */
-h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-serif);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.8;
+  font-size: 17px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 容器布局 */
+#content, .content, article {
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 3rem 2rem;
+  background-color: var(--bg-secondary);
+  box-shadow: 0 4px 20px var(--shadow);
+  min-height: 100vh;
+}
+
+/* 标题层级 */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
   font-weight: 600;
   line-height: 1.4;
-  margin-top: 2em;
-  margin-bottom: 0.8em;
+  margin-top: 2.5em;
+  margin-bottom: 1em;
   color: var(--text-primary);
-  letter-spacing: 0.05em;
-  transition: color 0.3s ease;
+  position: relative;
 }
 
 h1 {
   font-size: 2.2em;
   text-align: center;
+  padding-bottom: 0.8em;
+  border-bottom: 2px solid var(--accent-1);
   margin-bottom: 1.5em;
-  padding-bottom: 0.5em;
-  border-bottom: 2px solid var(--morandi-warm);
+  color: var(--accent-1);
 }
 
 h2 {
-  font-size: 1.6em;
-  margin-top: 2.5em;
-  padding-left: 0.5em;
-  border-left: 4px solid var(--morandi-blue);
+  font-size: 1.8em;
+  padding-left: 0.8em;
+  border-left: 4px solid var(--accent-1);
+  margin-top: 2em;
 }
 
 h3 {
-  font-size: 1.3em;
-  margin-top: 2em;
-  position: relative;
-  padding-left: 1em;
-}
-
-h3::before {
-  content: "◆";
-  position: absolute;
-  left: 0;
-  color: var(--morandi-rose);
-  font-size: 0.6em;
-  top: 0.3em;
+  font-size: 1.4em;
+  color: var(--accent-2);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.3em;
 }
 
 h4 {
-  font-size: 1.1em;
+  font-size: 1.2em;
   color: var(--text-secondary);
-  margin-top: 1.5em;
-  font-weight: 500;
 }
-/* -------------------------------------------
-   段落与文本流（中文排版优化）
-   ------------------------------------------- */
+
+/* 段落与文本 */
 p {
-  margin-bottom: 1.2em;
-  text-indent: 2em;
+  margin-bottom: var(--spacing);
+  text-align: justify;
+  hyphens: auto;
 }
 
-/* 取消特定元素后的缩进 */
-h1 + p, h2 + p, h3 + p, h4 + p,
-ul + p, ol + p,
-blockquote + p,
-pre + p,
-table + p,
-.figure + p {
-  text-indent: 0;
-}
-
-strong, b {
-  font-weight: 600;
-  color: var(--text-primary);
-  background: linear-gradient(transparent 60%, var(--morandi-rose) 60%);
-  padding: 0 0.2em;
-  /* 修复：删除无效的 background-opacity，改用 opacity 控制整体透明度 */
-  opacity: 0.95;
-}
-
-em, i {
-  font-style: italic;
-  color: var(--text-secondary);
-  font-family: var(--font-serif);
-}
-
-mark {
-  background-color: var(--morandi-rose);
-  color: var(--bg-primary);
-  padding: 0.1em 0.3em;
-  border-radius: 2px;
-  opacity: 0.9;
-}
-
-del {
-  color: var(--text-muted);
-  text-decoration: line-through;
-  opacity: 0.7;
-}
-
-ins {
-  text-decoration: none;
-  border-bottom: 1px dashed var(--morandi-green);
-  color: var(--text-primary);
-}
-
-/* -------------------------------------------
-   夜间模式加粗文本优化
-   ------------------------------------------- */
-@media (prefers-color-scheme: dark) {
-  strong, b {
-    /* 使用更亮的文字颜色 */
-    color: var(--inverse-bg);
-    /* 调整背景高亮：使用莫兰迪玫瑰色，但降低透明度和调整位置 */
-    background: linear-gradient(transparent 40%, rgba(196, 176, 168, 0.4) 40%);
-    /* 添加文字阴影增强可读性 */
-    text-shadow: 0 0 2px rgba(212, 204, 196, 0.2);
-    opacity: 1;
-  }
-
-  mark {
-    /* mark 在夜间模式也需要调整 */
-    background-color: var(--morandi-rose);
-    color: var(--bg-primary);
-    opacity: 1;
-    font-weight: 600;
-  }
-}
-
-/* -------------------------------------------
-   链接样式
-   ------------------------------------------- */
+/* 链接 */
 a {
-  color: var(--morandi-blue);
+  color: var(--accent-3);
   text-decoration: none;
   border-bottom: 1px solid transparent;
-  transition: all 0.3s ease;
-  padding: 0 0.1em;
+  transition: all 0.2s ease;
+  position: relative;
 }
 
 a:hover {
-  border-bottom-color: var(--morandi-blue);
-  background-color: rgba(122, 143, 163, 0.1);
+  color: var(--accent-1);
+  border-bottom-color: var(--accent-1);
 }
 
-/* -------------------------------------------
-   列表样式
-   ------------------------------------------- */
+/* 列表样式 */
 ul, ol {
-  margin: 1.2em 0;
-  padding-left: 2.5em;
+  margin-bottom: var(--spacing);
+  padding-left: 2em;
 }
 
 li {
   margin-bottom: 0.6em;
-  line-height: 1.7;
-}
-
-ul li {
-  list-style-type: none;
   position: relative;
 }
 
-ul li::before {
-  content: "•";
-  color: var(--morandi-sage);
-  font-weight: bold;
-  position: absolute;
-  left: -1.2em;
+ul li::marker {
+  color: var(--accent-1);
   font-size: 1.2em;
-  line-height: 1.4;
 }
 
-ul ul li::before {
-  content: "◦";
-  color: var(--morandi-warm);
-}
-
-ul ul ul li::before {
-  content: "▪";
-  color: var(--morandi-blue);
-}
-
-ol li {
-  list-style-type: decimal;
-  color: var(--text-primary);
-}
-
-ol ol li {
-  list-style-type: lower-alpha;
-}
-
-dt {
+ol li::marker {
+  color: var(--accent-2);
   font-weight: 600;
-  color: var(--text-primary);
-  margin-top: 1em;
-  font-family: var(--font-serif);
 }
 
-dd {
-  margin-left: 2em;
-  margin-bottom: 0.8em;
-  color: var(--text-secondary);
-  border-left: 2px solid var(--border-color);
-  padding-left: 1em;
-}
-/* -------------------------------------------
-   Mermaid 流程图样式美化
-   ------------------------------------------- */
-.mermaid {
-  display: block;
-  margin: 2em auto;
-  padding: 1.5em;
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px var(--shadow);
-  overflow-x: auto;
-  text-align: center;
-  transition: all 0.3s ease;
-}
-
-/* 流程图内文字 */
-.mermaid text,
-.mermaid tspan {
-  font-family: var(--font-sans) !important;
-  font-size: 14px !important;
-  fill: var(--text-primary) !important;
-}
-
-/* 节点样式 */
-.mermaid .node rect,
-.mermaid .node circle,
-.mermaid .node ellipse,
-.mermaid .node polygon {
-  fill: var(--bg-primary) !important;
-  stroke: var(--morandi-blue) !important;
-  stroke-width: 2px !important;
-  filter: drop-shadow(0 2px 4px var(--shadow));
-}
-
-/* 边线 */
-.mermaid .edgePath .path {
-  stroke: var(--morandi-sage) !important;
-  stroke-width: 1.5px !important;
-  stroke-linecap: round;
-}
-
-/* 箭头 */
-.mermaid .arrowheadPath {
-  fill: var(--morandi-sage) !important;
-}
-
-/* 子图样式 */
-.mermaid .cluster rect {
-  fill: rgba(122, 143, 163, 0.08) !important;
-  stroke: var(--morandi-warm) !important;
-  stroke-dasharray: 5, 5;
-  stroke-width: 1.5px;
-}
-
-/* 标签背景 */
-.mermaid .label {
-  background-color: var(--bg-primary) !important;
-  color: var(--text-primary) !important;
-}
-
-/* 悬停效果 */
-.mermaid:hover {
-  box-shadow: 0 6px 20px var(--shadow-strong);
-  transform: translateY(-2px);
-}
-
-/* 代码块标签 */
-pre.src-mermaid::before {
-  content: "流程图";
-  position: absolute;
-  top: -12px;
-  left: 1em;
-  background: var(--morandi-blue);
-  color: var(--bg-primary);
-  padding: 0.2em 0.8em;
-  border-radius: 12px;
-  font-size: 0.75em;
+/* 待办事项与标签 */
+.todo, .done {
   font-family: var(--font-sans);
+  font-size: 0.75em;
+  padding: 0.2em 0.6em;
+  border-radius: var(--radius);
   font-weight: 600;
-  box-shadow: 0 2px 4px var(--shadow);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-right: 0.5em;
 }
 
-pre.src-mermaid {
-  position: relative;
-  padding-top: 2em;
-  background-color: var(--code-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
+.todo {
+  background-color: var(--accent-2);
+  color: #FFF;
 }
 
-@media (prefers-color-scheme: dark) {
-  .mermaid {
-    background-color: var(--bg-secondary);
-    border-color: var(--border-color);
-  }
-
-  .mermaid .node rect,
-  .mermaid .node circle {
-    fill: var(--bg-tertiary) !important;
-    stroke: var(--morandi-blue) !important;
-  }
-
-  .mermaid .edgePath .path {
-    stroke: var(--morandi-warm) !important;
-  }
+.done {
+  background-color: var(--accent-1);
+  color: #FFF;
 }
-/* -------------------------------------------
-   引用块
-   ------------------------------------------- */
-blockquote {
-  margin: 2em 1.5em;
-  padding: 1em 1.5em;
-  background-color: rgba(154, 154, 138, 0.15);
-  border-left: 4px solid var(--morandi-sage);
-  border-radius: 0 4px 4px 0;
+
+.tag {
+  font-family: var(--font-sans);
+  font-size: 0.75em;
+  background-color: var(--bg-primary);
   color: var(--text-secondary);
-  font-family: var(--font-serif);
-  font-style: italic;
-  position: relative;
-  transition: background-color 0.3s ease;
+  padding: 0.2em 0.6em;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  margin-left: 0.5em;
+  white-space: nowrap;
 }
 
-@media (prefers-color-scheme: dark) {
-  blockquote {
-    background-color: rgba(160, 160, 144, 0.1);
-  }
+/* 引用块 */
+blockquote {
+  margin: 2em 0;
+  padding: 1.2em 1.5em;
+  border-left: 4px solid var(--accent-4);
+  background-color: var(--note-bg);
+  color: var(--text-secondary);
+  font-style: italic;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  position: relative;
 }
 
 blockquote::before {
   content: """;
   font-size: 3em;
-  color: var(--morandi-sage);
   position: absolute;
-  left: 0.2em;
   top: -0.2em;
+  left: 0.2em;
+  color: var(--accent-4);
   opacity: 0.3;
   font-family: Georgia, serif;
 }
 
-blockquote p {
-  text-indent: 0;
-  margin-bottom: 0.8em;
-}
-
-blockquote p:last-child {
-  margin-bottom: 0;
-}
-
-blockquote cite {
-  display: block;
-  text-align: right;
-  font-size: 0.9em;
-  color: var(--text-muted);
-  font-style: normal;
-  margin-top: 0.5em;
-}
-
-blockquote cite::before {
-  content: "—— ";
-}
-
-/* -------------------------------------------
-   代码与公式
-   ------------------------------------------- */
-code, kbd, tt {
+/* 代码与预格式化文本 */
+code, kbd, pre {
   font-family: var(--font-mono);
   font-size: 0.9em;
-  background-color: var(--code-bg);
-  color: var(--text-primary);
+}
+
+code {
+  background-color: var(--bg-primary);
+  color: var(--accent-3);
   padding: 0.2em 0.4em;
   border-radius: 3px;
   border: 1px solid var(--border-color);
-  transition: all 0.3s ease;
 }
 
 pre {
-  background-color: var(--code-bg);
+  background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: var(--radius);
   padding: 1.2em;
-  margin: 1.5em 0;
   overflow-x: auto;
-  font-family: var(--font-mono);
-  font-size: 0.9em;
-  line-height: 1.6;
-  box-shadow: inset 0 1px 3px var(--shadow);
-  transition: all 0.3s ease;
+  margin-bottom: var(--spacing);
+  position: relative;
 }
 
-pre code {
-  background: none;
+pre.src {
+  background-color: #2D2D2D;
+  color: #D4CBC4;
   border: none;
-  padding: 0;
-  font-size: 1em;
-  color: var(--text-primary);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
 }
 
-/* 代码高亮颜色适配 */
-.org-keyword { color: var(--morandi-blue); font-weight: 600; }
-.org-string { color: var(--morandi-rose); }
-.org-comment { color: var(--morandi-green); font-style: italic; }
-.org-function { color: var(--morandi-sage); }
-.org-number { color: var(--morandi-lavender); }
-.org-type { color: var(--morandi-warm); }
-
-/* -------------------------------------------
-   表格 - 经济数据专用
-   ------------------------------------------- */
+/* 表格 */
 table {
   width: 100%;
   border-collapse: collapse;
-  margin: 1.5em 0;
+  margin: 2em 0;
   font-size: 0.95em;
-  background-color: transparent;
   box-shadow: 0 2px 8px var(--shadow);
+  border-radius: var(--radius);
+  overflow: hidden;
 }
 
 thead {
-  background-color: var(--table-header);
-  border-bottom: 2px solid var(--border-color);
-  transition: background-color 0.3s ease;
+  background-color: var(--accent-1);
+  color: white;
+  font-family: var(--font-sans);
+  font-weight: 600;
 }
 
 th {
-  font-family: var(--font-serif);
-  font-weight: 600;
-  color: var(--text-primary);
   padding: 0.8em 1em;
   text-align: left;
-  letter-spacing: 0.05em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 td {
   padding: 0.7em 1em;
   border-bottom: 1px solid var(--border-color);
-  color: var(--text-primary);
-  transition: border-color 0.3s ease;
+}
+
+tbody tr {
+  background-color: var(--bg-secondary);
+  transition: background-color 0.2s;
 }
 
 tbody tr:nth-child(even) {
-  background-color: rgba(196, 184, 168, 0.1);
+  background-color: var(--bg-primary);
 }
 
 tbody tr:hover {
-  background-color: rgba(122, 143, 163, 0.1);
+  background-color: var(--note-bg);
 }
 
-/* 数值列右对齐 */
-td.numeric, td:nth-child(n+2) {
-  text-align: right;
-  font-family: var(--font-mono);
-}
-
-/* -------------------------------------------
-   水平线
-   ------------------------------------------- */
+/* 水平线 */
 hr {
   border: none;
   height: 1px;
-  background: linear-gradient(to right, transparent, var(--morandi-warm), transparent);
+  background: linear-gradient(to right, transparent, var(--border-color), transparent);
   margin: 3em 0;
-  position: relative;
 }
 
-hr::after {
-  content: "§";
-  position: absolute;
-  left: 50%;
-  top: -0.7em;
-  transform: translateX(-50%);
-  background-color: var(--bg-primary);
-  color: var(--morandi-warm);
-  padding: 0 1em;
-  font-size: 1.2em;
-  transition: background-color 0.3s ease;
-}
-
-/* -------------------------------------------
-   图片与图表
-   ------------------------------------------- */
+/* 图片与图表 */
 img {
   max-width: 100%;
   height: auto;
-  display: block;
-  margin: 2em auto;
-  border-radius: 4px;
+  border-radius: var(--radius);
   box-shadow: 0 4px 12px var(--shadow);
-  transition: all 0.3s ease;
+  margin: 1.5em 0;
 }
 
 .figure {
-  text-align: center;
   margin: 2em 0;
+  text-align: center;
 }
 
 .figure p {
-  text-indent: 0;
   font-size: 0.9em;
-  color: var(--text-muted);
-  margin-top: 0.8em;
+  color: var(--text-secondary);
+  margin-top: 0.5em;
   font-style: italic;
 }
 
-/* -------------------------------------------
-   脚注
-   ------------------------------------------- */
-.footpara {
-  font-size: 0.9em;
-  color: var(--text-muted);
-  margin: 0.5em 0;
-  padding-left: 1.5em;
-  text-indent: -1.5em;
-}
-
-.footref {
-  color: var(--morandi-blue);
-  font-size: 0.8em;
-  vertical-align: super;
-  text-decoration: none;
-}
-/* -------------------------------------------
-   特殊区块 - 提示与注意（图标置顶版）
-   ------------------------------------------- */
-.tip, .note, .warning, .important, .remark,
-.theory, .definition, .gap, .example, .question {
-  margin: 2em 0 1.5em 0;  /* 顶部增加间距，为图标留出呼吸空间 */
-  padding: 2.5em 1.5em 1.2em 1.5em;  /* 顶部padding增大，左侧取消特殊padding */
-  border-radius: 6px;
+/* 特殊块 */
+.note, .warning, .tip, .important {
+  margin: 2em 0;
+  padding: 1.2em 1.5em;
+  border-radius: var(--radius);
+  border-left: 4px solid;
+  font-family: var(--font-sans);
   position: relative;
-  transition: all 0.3s ease;
 }
-
-/* 图标统一样式 - 置顶居中 */
-.tip::before, .note::before, .warning::before, .important::before, .remark::before,
-.theory::before, .definition::before, .gap::before, .example::before, .question::before {
-  position: absolute;
-  left: 50%;
-  top: 0;  /* 置于最顶部 */
-  transform: translate(-50%, -50%);  /* 水平垂直居中，并向上偏移一半使图标骑在边框上 */
-  font-size: 1.5em;
-  background-color: var(--bg-primary);  /* 背景色与页面一致，制造"浮出"效果 */
-  padding: 0 0.5em;
-  border-radius: 50%;  /* 圆形背景 */
-  line-height: 1;
-  z-index: 1;
-}
-
-/* 夜间模式下的图标背景适配 */
-@media (prefers-color-scheme: dark) {
-  .tip::before, .note::before, .warning::before, .important::before, .remark::before,
-  .theory::before, .definition::before, .gap::before, .example::before, .question::before {
-    background-color: var(--bg-primary);
-  }
-}
-
-/* 原有颜色定义保持不变 */
-.tip {
-  background-color: rgba(138, 154, 126, 0.15);
-  border-left: 4px solid var(--morandi-green);
-  border-top: 1px solid rgba(138, 154, 126, 0.3);
-}
-.tip::before { content: "💡"; filter: grayscale(0.2); }
 
 .note {
-  background-color: rgba(122, 143, 163, 0.15);
-  border-left: 4px solid var(--morandi-blue);
-  border-top: 1px solid rgba(122, 143, 163, 0.3);
+  background-color: var(--note-bg);
+  border-left-color: var(--accent-1);
 }
-.note::before { content: "📝"; filter: grayscale(0.2); }
 
 .warning {
-  background-color: rgba(176, 168, 152, 0.2);
-  border-left: 4px solid var(--morandi-warm);
-  border-top: 1px solid rgba(176, 168, 152, 0.3);
+  background-color: var(--warning-bg);
+  border-left-color: var(--accent-2);
 }
-.warning::before { content: "⚠️"; filter: grayscale(0.2); }
+
+.tip {
+  background-color: var(--tip-bg);
+  border-left-color: var(--accent-3);
+}
 
 .important {
-  background-color: rgba(196, 176, 168, 0.2);
-  border-left: 4px solid var(--morandi-rose);
-  border-top: 1px solid rgba(196, 176, 168, 0.3);
-}
-.important::before { content: "❗"; filter: grayscale(0.2); }
-
-.remark {
-  background-color: rgba(154, 149, 168, 0.15);
-  border-left: 4px solid var(--morandi-lavender);
-  border-top: 1px solid rgba(154, 149, 168, 0.3);
-}
-.remark::before { content: "📌"; filter: grayscale(0.2); }
-
-/* -------------------------------------------
-   学术专用区块扩展（图标置顶）
-   ------------------------------------------- */
-.theory {
-  background-color: rgba(122, 143, 163, 0.12);
-  border-left: 4px solid var(--morandi-blue);
-  border-top: 1px solid rgba(122, 143, 163, 0.25);
-}
-.theory::before { content: "📖"; }
-
-.definition {
-  background-color: rgba(154, 154, 138, 0.12);
-  border-left: 4px solid var(--morandi-sage);
-  border-top: 1px solid rgba(154, 154, 138, 0.25);
-}
-.definition::before { content: "📋"; }
-
-.gap {
-  background-color: rgba(184, 168, 160, 0.2);
-  border-left: 4px solid var(--morandi-rose);
-  border-right: 2px dashed var(--morandi-rose);
-  border-top: 1px solid rgba(184, 168, 160, 0.3);
-}
-.gap::before { content: "🔍"; }
-
-.example {
-  background-color: rgba(196, 184, 168, 0.15);
-  border-left: 4px solid var(--morandi-warm);
-  border-top: 1px solid rgba(196, 184, 168, 0.3);
-}
-.example::before { content: "💭"; }
-
-.question {
-  background-color: rgba(154, 149, 168, 0.15);
-  border-left: 4px solid var(--morandi-lavender);
-  border-top: 1px solid rgba(154, 149, 168, 0.3);
-}
-.question::before { content: "❓"; }
-
-/* -------------------------------------------
-   Org 特定元素
-   ------------------------------------------- */
-.timestamp {
-  font-family: var(--font-mono);
-  font-size: 0.85em;
-  color: var(--text-muted);
-  background-color: var(--bg-secondary);
-  padding: 0.1em 0.4em;
-  border-radius: 3px;
-  border: 1px solid var(--border-light);
+  background-color: rgba(164, 154, 168, 0.1);
+  border-left-color: var(--morandi-mauve);
 }
 
-.tag {
-  font-size: 0.75em;
-  background-color: var(--morandi-warm);
-  color: var(--inverse-text);
-  padding: 0.1em 0.6em;
-  border-radius: 12px;
-  margin-left: 0.5em;
-  font-weight: 500;
-  letter-spacing: 0.05em;
-  opacity: 0.9;
+.note::before, .warning::before, .tip::before, .important::before {
+  font-weight: 700;
+  margin-right: 0.5em;
+  font-family: var(--font-sans);
 }
 
-.todo {
-  font-family: var(--font-mono);
-  font-size: 0.8em;
-  font-weight: 600;
-  padding: 0.1em 0.4em;
-  border-radius: 3px;
-  margin-right: 0.3em;
-  display: inline-block;
-}
+.note::before { content: "NOTE"; color: var(--accent-1); }
+.warning::before { content: "WARNING"; color: var(--accent-2); }
+.tip::before { content: "TIP"; color: var(--accent-3); }
+.important::before { content: "IMPORTANT"; color: var(--morandi-mauve); }
 
-.todo.TODO { background-color: var(--morandi-rose); color: var(--bg-primary); }
-.todo.DONE { background-color: var(--morandi-green); color: var(--bg-primary); }
-.todo.WAIT { background-color: var(--morandi-blue); color: var(--bg-primary); }
-
-.priority {
-  font-family: var(--font-mono);
-  font-size: 0.8em;
-  color: var(--morandi-rose);
-  font-weight: bold;
-}
-
-/* -------------------------------------------
-   数学公式 (MathJax/KaTeX)
-   ------------------------------------------- */
-.mjx-chtml, .katex {
-  font-size: 1em !important;
-  color: var(--text-primary);
-}
-
-.math-inline {
-  color: var(--text-primary);
-}
-
-.equation {
-  margin: 1.5em 0;
-  text-align: center;
-  position: relative;
+/* 数学公式 */
+.equation, .math {
   overflow-x: auto;
+  padding: 1em;
+  background-color: var(--bg-primary);
+  border-radius: var(--radius);
+  margin: 1.5em 0;
 }
 
-.equation-number {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
+/* ============================================
+   可折叠目录样式 (Collapsible TOC)
+   ============================================ */
+
+#table-of-contents, .toc {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 0;
+  margin: 2em 0;
+  box-shadow: 0 2px 8px var(--shadow);
+  overflow: hidden;
+}
+
+/* 目录头部 - 包含标题和控制按钮 */
+.toc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1em 1.5em;
+  background-color: rgba(139, 154, 139, 0.05);
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  user-select: none;
+}
+
+.toc-header:hover {
+  background-color: rgba(139, 154, 139, 0.1);
+}
+
+#table-of-contents h2 {
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-size: 1.2em;
+  color: var(--accent-1);
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+/* 目录控制按钮组 */
+.toc-controls {
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+}
+
+/* 展开/收起图标 */
+.toc-toggle-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: transform 0.3s ease;
+  color: var(--text-secondary);
+  font-size: 0.8em;
+}
+
+#table-of-contents.collapsed .toc-toggle-icon {
+  transform: rotate(-90deg);
+}
+
+/* 展开全部/收起全部按钮 */
+.toc-btn {
+  font-family: var(--font-sans);
+  font-size: 0.75em;
+  padding: 0.3em 0.8em;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toc-btn:hover {
+  background-color: var(--accent-1);
+  color: white;
+  border-color: var(--accent-1);
+}
+
+/* 目录内容容器 */
+.toc-content {
+  max-height: 2000px; /* 足够大的值以允许动画 */
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0, 1, 0, 1), padding 0.3s ease;
+  padding: 1em 1.5em;
+}
+
+#table-of-contents.collapsed .toc-content {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* 目录列表样式 */
+.toc ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.toc li {
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+/* 目录项容器 - 用于折叠 */
+.toc-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 0.3em 0;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.toc-item:hover {
+  background-color: rgba(139, 154, 139, 0.05);
+}
+
+/* 目录折叠按钮 */
+.toc-fold-btn {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  margin-right: 0.3em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 3px;
+  color: var(--text-secondary);
+  font-size: 0.7em;
+  transition: all 0.2s ease;
+  margin-top: 0.2em;
+}
+
+.toc-fold-btn:hover {
+  background-color: var(--bg-secondary);
+  color: var(--accent-1);
+}
+
+.toc-fold-btn.collapsed {
+  transform: rotate(-90deg);
+}
+
+/* 隐藏没有子项的折叠按钮 */
+.toc-fold-btn:empty {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* 目录链接 */
+.toc a {
+  color: var(--text-secondary);
+  border-bottom: none;
+  text-decoration: none;
+  flex: 1;
+  padding: 0.2em 0;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  display: block;
+}
+
+.toc a:hover {
+  color: var(--accent-1);
+  padding-left: 0.3em;
+}
+
+/* 当前章节高亮 */
+.toc a.active {
+  color: var(--accent-1);
+  font-weight: 600;
+  background-color: rgba(139, 154, 139, 0.1);
+  padding-left: 0.5em;
+  margin-left: -0.5em;
+}
+
+/* 层级缩进 */
+.toc ul ul {
+  padding-left: 1.5em;
+  border-left: 1px solid var(--border-color);
+  margin-left: 0.5em;
+  margin-top: 0.2em;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  max-height: 1000px;
+  opacity: 1;
+}
+
+.toc ul ul.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+}
+
+/* 不同层级的样式区分 */
+.toc > ul > li > .toc-item {
+  font-weight: 600;
+  font-size: 1.05em;
+}
+
+.toc > ul > li > .toc-item a {
+  color: var(--text-primary);
+}
+
+.toc > ul > li > ul > li > .toc-item {
+  font-weight: 400;
+  font-size: 0.95em;
+}
+
+.toc > ul > li > ul > li > ul > li > .toc-item {
+  font-size: 0.9em;
+  color: var(--text-secondary);
+}
+
+/* 脚注 */
+.footnotes {
+  margin-top: 4em;
+  padding-top: 2em;
+  border-top: 2px solid var(--border-color);
+  font-size: 0.9em;
+  color: var(--text-secondary);
+}
+
+.footnotes h2 {
+  font-size: 1.3em;
+  color: var(--text-secondary);
+}
+
+/* 时间戳 */
+.timestamp, .date {
+  color: var(--accent-2);
+  font-family: var(--font-mono);
   font-size: 0.9em;
 }
 
-/* -------------------------------------------
-   目录样式
-   ------------------------------------------- */
-#table-of-contents {
-  background-color: rgba(196, 184, 168, 0.15);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 1.5em;
-  margin: 2em 0;
-  font-size: 0.95em;
+.author {
+  text-align: center;
+  color: var(--text-secondary);
+  margin-top: -1em;
+  margin-bottom: 2em;
+  font-style: italic;
+}
+
+/* 打印优化 */
+@media print {
+  body {
+    background: white;
+  }
+  #content, .content {
+    box-shadow: none;
+    max-width: 100%;
+  }
+  .theme-toggle, .toc-controls, .toc-fold-btn {
+    display: none !important;
+  }
+  .toc-content {
+    max-height: none !important;
+  }
+  .toc ul ul {
+    max-height: none !important;
+    opacity: 1 !important;
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+  #content, .content {
+    padding: 1.5rem;
+  }
+  h1 { font-size: 1.8em; }
+  h2 { font-size: 1.5em; }
+  table { font-size: 0.9em; }
+
+  .toc-btn {
+    display: none; /* 移动端隐藏展开全部按钮节省空间 */
+  }
+
+  #table-of-contents {
+    margin: 1em -1rem;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+}
+
+/* ============================================
+   Org Mode 复选框优化样式 - 莫兰迪主题扩展
+   ============================================ */
+
+/* 基础复选框容器 */
+.org-checkbox-wrapper {
+  display: inline-flex;
+  align-items: center;
+  margin: 0.2em 0;
+  cursor: pointer;
+}
+
+/* 隐藏原生 checkbox 输入框 */
+.org-checkbox-wrapper input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  cursor: pointer;
+}
+
+/* 自定义复选框外观 */
+.org-checkbox {
+  width: 1.3em;
+  height: 1.3em;
+  min-width: 1.3em;
+  border: 2px solid var(--morandi-cool-gray);
+  border-radius: 4px;
+  background-color: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-right: 0.6em;
+  position: relative;
+  cursor: pointer;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* 悬停效果 */
+.org-checkbox-wrapper:hover .org-checkbox {
+  border-color: var(--accent-1);
+  transform: scale(1.05);
+  box-shadow: 0 2px 6px var(--shadow);
+}
+
+/* 未勾选状态 [-] */
+.org-checkbox-state-none {
+  border-color: var(--morandi-cool-gray);
+  background-color: var(--bg-secondary);
+}
+
+.org-checkbox-state-none::after {
+  content: '−';
+  color: var(--morandi-cool-gray);
+  font-size: 1em;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* 已勾选状态 [X] */
+.org-checkbox-state-done {
+  background-color: var(--accent-1);
+  border-color: var(--accent-1);
+}
+
+.org-checkbox-state-done::after {
+  content: '✓';
+  color: white;
+  font-size: 0.85em;
+  font-weight: 700;
+  animation: checkmark-pop 0.3s ease;
+}
+
+/* 部分完成状态 [-] 或其他中间状态 */
+.org-checkbox-state-todo {
+  background-color: var(--bg-secondary);
+  border-color: var(--accent-2);
+}
+
+.org-checkbox-state-todo::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background-color: var(--accent-2);
+  border-radius: 50%;
+  position: absolute;
+}
+
+/* 点击动画 */
+@keyframes checkmark-pop {
+  0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+  50% { transform: scale(1.2) rotate(0deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* 列表项中的复选框布局优化 */
+li .org-checkbox-wrapper {
+  margin-left: -0.3em; /* 对齐调整 */
+}
+
+/* 复选框标签文本 */
+.org-checkbox-label {
+  color: var(--text-primary);
+  transition: color 0.2s ease;
+  user-select: none;
+  line-height: 1.6;
+}
+
+/* 已完成项目文本样式（可选） */
+li:has(.org-checkbox-state-done) > .org-checkbox-label,
+li:has(.org-checkbox-state-done) {
+  color: var(--text-secondary);
+  text-decoration: line-through;
+  text-decoration-color: var(--morandi-cool-gray);
+  text-decoration-thickness: 1px;
+  opacity: 0.85;
   transition: all 0.3s ease;
 }
 
-#table-of-contents h2 {
-  font-size: 1.2em;
-  margin-top: 0;
-  border-left: none;
-  text-align: center;
-  padding-left: 0;
-  color: var(--text-primary);
-}
-
-#text-table-of-contents ul {
+/* 列表项整体优化 */
+li.org-checkbox-item {
   list-style: none;
-  padding-left: 0;
-}
-
-#text-table-of-contents li {
-  margin: 0.4em 0;
-}
-
-#text-table-of-contents a {
-  color: var(--text-primary);
-  border-bottom: none;
-  display: block;
-  padding: 0.2em 0;
-  transition: all 0.2s;
-}
-
-#text-table-of-contents a:hover {
-  color: var(--morandi-blue);
-  background-color: rgba(122, 143, 163, 0.1);
+  position: relative;
   padding-left: 0.5em;
-  border-radius: 3px;
+  margin-bottom: 0.8em;
+  display: flex;
+  align-items: flex-start;
 }
 
-#text-table-of-contents ul ul {
-  padding-left: 1.5em;
-  font-size: 0.95em;
+li.org-checkbox-item::before {
+  display: none; /* 隐藏默认标记 */
 }
 
-/* -------------------------------------------
-   打印优化
-   ------------------------------------------- */
+/* 嵌套列表的缩进调整 */
+li.org-checkbox-item ul,
+li.org-checkbox-item ol {
+  margin-top: 0.5em;
+  width: 100%;
+}
+
+/* 暗色模式优化 */
+@media (prefers-color-scheme: dark) {
+  .org-checkbox {
+    background-color: var(--bg-secondary);
+    border-color: var(--text-secondary);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  .org-checkbox-state-none::after {
+    color: var(--text-secondary);
+  }
+
+  .org-checkbox-state-done {
+    background-color: var(--accent-1);
+    border-color: var(--accent-1);
+  }
+
+  .org-checkbox-state-todo::after {
+    background-color: var(--accent-2);
+  }
+
+  li:has(.org-checkbox-state-done) > .org-checkbox-label,
+  li:has(.org-checkbox-state-done) {
+    color: var(--text-secondary);
+    text-decoration-color: var(--accent-1);
+  }
+}
+
+/* 手动暗色模式适配 */
+body.dark-mode .org-checkbox {
+  background-color: var(--bg-secondary);
+  border-color: var(--text-secondary);
+}
+
+/* 打印优化 */
 @media print {
-  body {
-    background: white !important;
-    color: black !important;
-    font-size: 12pt;
-    max-width: none;
-    padding: 2cm;
+  .org-checkbox {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 
-  a {
-    color: #333 !important;
-    text-decoration: none;
-    border-bottom: 1px dotted #999;
-  }
-
-  h1, h2, h3 {
-    page-break-after: avoid;
-    color: black !important;
-  }
-
-  pre, blockquote, table {
-    page-break-inside: avoid;
-    background-color: #f5f5f5 !important;
-  }
-
-  .tip, .note, .warning, .important {
-    background-color: #f5f5f5 !important;
-    border: 1px solid #ddd;
+  .org-checkbox-state-done {
+    background-color: var(--accent-1) !important;
+    border-color: var(--accent-1) !important;
   }
 }
 
-/* -------------------------------------------
-   响应式设计
-   ------------------------------------------- */
-@media (max-width: 768px) {
-  body {
-    padding: 1.5rem;
-    font-size: 15px;
+/* 无障碍焦点样式 */
+.org-checkbox-wrapper input[type="checkbox"]:focus + .org-checkbox {
+  outline: 2px solid var(--accent-3);
+  outline-offset: 2px;
+}
+
+/* 过渡动画优化（减少运动偏好） */
+@media (prefers-reduced-motion: reduce) {
+  .org-checkbox,
+  .org-checkbox-wrapper,
+  .org-checkbox-label,
+  li:has(.org-checkbox-state-done) {
+    transition: none;
+    animation: none;
   }
 
-  h1 { font-size: 1.8em; }
-  h2 { font-size: 1.4em; }
-  h3 { font-size: 1.2em; }
-
-  pre {
-    padding: 0.8em;
-    font-size: 0.85em;
+  .org-checkbox-state-done::after {
+    animation: none;
   }
-
-  table {
-    font-size: 0.9em;
-  }
-
-  td, th {
-    padding: 0.5em;
-  }
-
-  blockquote {
-    margin: 1.5em 0.5em;
-  }
-}
-
-/* -------------------------------------------
-   可折叠目录样式
-   ------------------------------------------- */
-
-/* 目录内容区域过渡动画 */
-#text-table-of-contents {
-    overflow: hidden;
-    max-height: 2000px; /* 足够大的值以容纳内容 */
-    opacity: 1;
-    transform: translateY(0);
-    transition: max-height 0.4s ease-out,
-                opacity 0.3s ease-out,
-                transform 0.3s ease-out,
-                margin 0.3s ease;
-}
-
-/* 折叠状态 */
-#text-table-of-contents.toc-collapsed {
-    max-height: 0;
-    opacity: 0;
-    transform: translateY(-10px);
-    margin-top: 0;
-    margin-bottom: 0;
-}
-
-/* 目录标题交互反馈 */
-#table-of-contents h2 {
-    position: relative;
-    transition: color 0.2s ease, background-color 0.2s;
-    padding: 0.5em 1em 0.5em 2em;
-    margin-left: -1em;
-    margin-right: -1em;
-    border-radius: 6px;
-}
-
-#table-of-contents h2:hover {
-    color: var(--morandi-blue);
-    background-color: rgba(122, 143, 163, 0.1);
-}
-
-#table-of-contents h2:active {
-    background-color: rgba(122, 143, 163, 0.2);
-    transform: translateY(1px);
-}
-
-/* 粘性目录的折叠适配（大屏幕） */
-@media (min-width: 1200px) {
-    #table-of-contents {
-        transition: max-height 0.4s ease;
-    }
-
-    #text-table-of-contents.toc-collapsed {
-        display: none; /* 固定定位时直接隐藏更流畅 */
-    }
-
-    /* 折叠时减小目录容器高度 */
-    #table-of-contents:has(#text-table-of-contents.toc-collapsed) {
-        max-height: 60px; /* 仅显示标题 */
-        overflow: hidden;
-    }
-}
-
-/* 打印时强制展开目录（不要折叠状态） */
-@media print {
-    #text-table-of-contents {
-        max-height: none !important;
-        opacity: 1 !important;
-        display: block !important;
-    }
-
-    #table-of-contents h2::before,
-    #table-of-contents h2 span {
-        display: none !important; /* 隐藏箭头 */
-    }
-}
-
-/* 目录节点折叠动画（可选：支持二级目录折叠） */
-#text-table-of-contents ul ul {
-    overflow: hidden;
-    max-height: 1000px;
-    transition: max-height 0.3s ease;
-}
-
-/* 响应式优化：移动端目录默认折叠（可选） */
-@media (max-width: 768px) {
-    #text-table-of-contents {
-        max-height: 300px;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-    }
 }

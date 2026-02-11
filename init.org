@@ -392,14 +392,6 @@
 #+end_src
 *** 图标与 Modeline
 #+begin_src emacs-lisp
-(use-package doom-modeline
-  :ensure t
-  :hook after-init
-  :config
-  (setq doom-modeline-buffer-file-name-style 'truncate-upto-project)
-  (setq doom-modeline-icon t)
-  (setq doom-modeline-bar-width 4)
-  (setq doom-modeline-major-mode-color-icon t))
 (use-package nerd-icons
   :ensure t
   :defer t)   ; loaded on-demand by dired, ibuffer, etc.

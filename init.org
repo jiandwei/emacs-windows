@@ -318,7 +318,16 @@
         calendar-location-name "Dalian")
   ;; Activate theme scheduler after init
   :hook (after-init . circadian-setup))
-
+;; 2. Mode Line
+(use-package doom-modeline
+  :ensure t
+  :hook (after-init . doom-modeline-mode)
+  :config
+  (setq doom-modeline-height 35
+        doom-modeline-buffer-file-name-style 'relative-from-project
+        doom-modeline-icon t
+        doom-modeline-major-mode-icon t
+        doom-modeline-minor-modes nil))  ;; 隐藏次要模式图标，避免 clutter
 ;; -------------------------------------------------------------------
 ;; Smooth pixel-precise scrolling
 ;; -------------------------------------------------------------------

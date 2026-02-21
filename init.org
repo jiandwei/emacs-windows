@@ -2846,8 +2846,8 @@
 (use-package rainbow-delimiters
   :ensure t
   :hook (prog-mode . rainbow-delimiters-mode)
-  :config
-  (setq rainbow-delimiters-max-face-count 5))
+  :custom
+  (rainbow-delimiters-max-face-count 5))
 (use-package prog-mode
   :hook (prog-mode . display-fill-column-indicator-mode)
   :custom

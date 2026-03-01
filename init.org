@@ -106,7 +106,7 @@
   ;; Native-compile installed packages for better performance.
   (setq package-native-compile t
         ;; Allow upgrading packages that are built-in to Emacs.
-        package-install-upgrade-built-in t
+        package-install-upgrade-built-in nil
         ;; Do **not** auto-install missing packages (manual control).
         use-package-always-ensure nil
         ;; Defer loading by default unless `:demand' is specified.

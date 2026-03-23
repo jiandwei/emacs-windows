@@ -278,7 +278,7 @@
 ;; -------------------------------------------------------------------
 (use-package panel
   ;; Fetch from GitHub; pin to branch "main"
-  :vc (panel :url "https://github.com/jiandwei/emacs-panel.git"
+  :vc (panel :url "https://github.com/LuciusChen/panel.git"
              :branch "main")
   ;; Create the dashboard as soon as Emacs is ready
   :hook (after-init . panel-create-hook)
@@ -2461,12 +2461,12 @@
         (concat
          ;; 1. 本地 CSS
          (format "<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\"/>\n"
-                 (expand-file-name "org.css" user-emacs-directory))
+                 (expand-file-name "assets/org.css" user-emacs-directory))
          ;; 2. Mermaid.js CDN（仅加载库，不初始化）
          "<script src=\"https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js\"></script>\n"
          ;; 3. 本地 org.js（包含初始化、交互功能）
          (format "<script src=\"%s\" defer></script>"
-                 (expand-file-name "org.js" user-emacs-directory)))))
+                 (expand-file-name "assets/org.js" user-emacs-directory)))))
 (with-eval-after-load 'ox-latex
   (setq org-latex-pdf-process '("latexmk -xelatex -quiet -shell-escape -f %f"))
   (push '(
@@ -2550,6 +2550,23 @@
   (markdown-enable-math t)
   (markdown-header-scaling t)
   (markdown-header-scaling-values '(1.3 1.2 1.1 1.0 1.0 1.0))
+  (markdown-enable-wiki-links t)
+  (markdown-italic-underscore t)
+  (markdown-asymmetric-header t)
+  (markdown-hide-urls t)
+  (markdown-hide-markup t)
+  ;; 核心：导出时注入外部资源（类似 org-html-head-extra）
+  (markdown-content-type "application/xhtml+xml")
+  (markdown-xhtml-header-content
+   (concat
+    ;; 1. 本地 CSS 主题
+    (format "<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\"/>\n"
+            (expand-file-name "assets/markdown.css" user-emacs-directory))
+    ;; 2. Mermaid.js 图表支持
+    "<script src=\"https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js\"></script>\n"
+    ;; 3. 本地交互脚本（高亮、折叠、暗色切换等）
+    (format "<script src=\"%s\" defer></script>"
+            (expand-file-name "assets/markdown.js" user-emacs-directory))))
   :custom-face
   (markdown-header-face-1 ((t (:height 1.3 :weight bold))))
   (markdown-header-face-2 ((t (:height 1.2 :weight bold))))
@@ -2567,9 +2584,27 @@
 ** 编程语言
 *** Python 配置文件
 #+begin_src emacs-lisp
+;; uv-mode 配置
 (use-package uv-mode
-  :ensure t
-  :hook (python-ts-mode . uv-mode-auto-activate-hook))   ; 自动激活核心
+  :hook (python-mode . uv-mode)
+  :config
+  (setq uv-mode-auto-activate-virtualenv t))
+
+;; Windows 专用：获取 uv 虚拟环境的 Python 路径
+(defun my/org-babel-python-use-uv-venv-windows ()
+  "Windows 下使用 uv 项目的虚拟环境"
+  (let* ((project-root (or (vc-root-dir) default-directory))
+         (venv-path (expand-file-name ".venv" project-root))
+         (python-exe (expand-file-name "Scripts/python.exe" venv-path)))
+    (when (and (file-directory-p venv-path)
+               (file-exists-p python-exe))
+      (setq-local org-babel-python-command python-exe)
+      (message "Org-mode 使用 uv 虚拟环境: %s" python-exe))))
+
+;; 多方式触发
+(add-hook 'org-mode-hook #'my/org-babel-python-use-uv-venv-windows)
+(add-hook 'org-babel-before-execute-hook #'my/org-babel-python-use-uv-venv-windows)
+
 
 ;; 现代语法高亮（Emacs 29+）
 (use-package python
@@ -2582,24 +2617,17 @@
   (setq python-shell-dedicated t)
   :config
   (with-eval-after-load 'eglot
+    ;; 注册 basedpyright
     (add-to-list 'eglot-server-programs
-                 '((python-ts-mode python-mode) . ("ty" "server")))))
+                 '((python-ts-mode python-mode) . ("basedpyright-langserver" "--stdio")))
 
-#+end_src
-*** Rust配置文件
-#+begin_src emacs-lisp
-(use-package rustic
-  :ensure t
-  :custom
-  ;; 记住上次的 Cargo 参数（超级实用）
-  (rustic-cargo-use-last-stored-arguments t)
-  ;; 保存时自动格式化（推荐开启）
-  (rustic-format-on-save t)
-  ;; 编译成功后自动关闭缓冲区
-  (rustic-quit-compile-on-success t)
-  :config
-  (setq rustic-lsp-client 'eglot)   ; 加到 rustic :custom 中
-  (setq rust-mode-treesitter-derive t))
+    ;; 可选：配置 basedpyright 选项
+    (setq-default eglot-workspace-configuration
+                  '(:basedpyright (:typeCheckingMode "recommended")
+                    :basedpyright.analysis
+                    (:diagnosticSeverityOverrides (:reportUnusedCallResult "none")
+                     :inlayHints (:callArgumentNames :json-false))))))
+
 #+end_src
 *** Elisp配置
 #+BEGIN_SRC emacs-lisp
@@ -2743,6 +2771,9 @@
   ;; BibTeX - 需要添加
   (setf (alist-get 'bibtex-tidy apheleia-formatters)
         '("bibtex-tidy" "--stdin" "--stdout"))
+  (setf (alist-get 'prettier apheleia-formatters)
+      '("npx" "prettier" "--stdin-filepath" filepath
+        "--parser=json" "--tab-width" "4"))
   ;; 建立模式与formatter的映射
   ;; 注意：是 LaTeX-mode 不是 latex-mode (首字母大写)
   (setf (alist-get 'LaTeX-mode apheleia-mode-alist) 'latexindent)

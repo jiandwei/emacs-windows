@@ -2575,32 +2575,19 @@
 ** 编程语言
 *** Python 配置文件
 #+begin_src emacs-lisp
-;; uv-mode 配置
+;; 2. uv-mode 配置（官方推荐写法）
 (use-package uv-mode
-  :hook (python-mode . uv-mode)
-  :config
-  (setq uv-mode-auto-activate-virtualenv t))
+  :ensure t
+  :hook ((python-ts-mode python-mode) . uv-mode-auto-activate-hook))
 (use-package python
-  :ensure t   ; 内置
+  :ensure nil
   :init
-  (setq major-mode-remap-alist
-        '((python-mode . python-ts-mode)))  ; 切换到 tree-sitter 版
-  (setq python-indent-offset 4)
-  (setq python-indent-block-paren-deeper t)
-  (setq python-shell-dedicated t)
+  (setq major-mode-remap-alist '((python-mode . python-ts-mode)))
   :config
+  (setq python-shell-interpreter "python")  ; 这个可以保留，但 uv-mode 会按项目覆盖
   (with-eval-after-load 'eglot
-    ;; 注册 basedpyright
     (add-to-list 'eglot-server-programs
-                 '((python-ts-mode python-mode) . ("basedpyright-langserver" "--stdio")))
-
-    ;; 可选：配置 basedpyright 选项
-    (setq-default eglot-workspace-configuration
-                  '(:basedpyright (:typeCheckingMode "recommended")
-                    :basedpyright.analysis
-                    (:diagnosticSeverityOverrides (:reportUnusedCallResult "none")
-                     :inlayHints (:callArgumentNames :json-false))))))
-
+                 '((python-ts-mode python-mode) . ("ty" "server")))))
 #+end_src
 *** Elisp配置
 #+BEGIN_SRC emacs-lisp
@@ -2739,22 +2726,26 @@
   :ensure t
   :diminish
   :config
+  ;; 定义 formatters
   (setf (alist-get 'astyle apheleia-formatters)
         '("astyle" "--mode=c" "--suffix=none"))
-  ;; BibTeX - 需要添加
   (setf (alist-get 'bibtex-tidy apheleia-formatters)
         '("bibtex-tidy" "--stdin" "--stdout"))
   (setf (alist-get 'prettier apheleia-formatters)
-      '("npx" "prettier" "--stdin-filepath" filepath
-        "--parser=json" "--tab-width" "4"))
-  ;; 建立模式与formatter的映射
-  ;; 注意：是 LaTeX-mode 不是 latex-mode (首字母大写)
+        '("npx" "prettier" "--stdin-filepath" filepath
+          "--parser=json" "--tab-width" "4"))
+  ;; 添加 ruff formatter
+  (setf (alist-get 'ruff apheleia-formatters)
+        '("ruff" "format" "--stdin-filename" filepath "-"))
+  ;; 建立模式映射
   (setf (alist-get 'LaTeX-mode apheleia-mode-alist) 'latexindent)
   (setf (alist-get 'c-mode apheleia-mode-alist) 'astyle)
   (setf (alist-get 'c++-mode apheleia-mode-alist) 'astyle)
-  ;; BibTeX mode
   (setf (alist-get 'bibtex-mode apheleia-mode-alist) 'bibtex-tidy)
-  (add-hook 'org-src-mode-hook #'apheleia-mode))
+
+  ;; Python 模式使用 ruff
+  (setf (alist-get 'python-mode apheleia-mode-alist) 'ruff)
+  (setf (alist-get 'python-ts-mode apheleia-mode-alist) 'ruff))
 #+end_src
 *** EGLOT-MODE
 #+begin_src emacs-lisp
@@ -3201,34 +3192,13 @@
   :ensure t
   :commands (gptel gptel-send gptel-menu gptel-abort)
   :config
-  (setq gptel-backends
-        `(("B4U" .
-           ,(gptel-make-openai "B4U"
-              :host "b4u.qzz.io"
-              :protocol "https"
-              :endpoint "/v1/chat/completions"
-              :stream t
-              :key #'gptel-api-key-from-auth-source
-              :models '(claude-4.5-sonnet-think
-                        claude-4.5-sonnet)))
-          ("Deep Seek" .
-           ,(gptel-make-deepseek "DeepSeek"
-              :stream t
-              :key #'gptel-api-key-from-auth-source
-              :models '(deepseek-reasoner deepseek-chat)))
-          ("Aliyun Bailian" .
-           ,(gptel-make-openai "Aliyun Bailian"
-              :host "dashscope.aliyuncs.com"
-              :protocol "https"
-              :endpoint "/compatible-mode/v1/chat/completions"
-              :stream t
-              :key #'gptel-api-key-from-auth-source
-              :models '(kimi-k2-thinking
-                        deepseek-v3.2)))))
+  (setq gptel-backend
+        (gptel-make-deepseek "DeepSeek"
+          :stream t
+          :key #'gptel-api-key-from-auth-source
+          :models '(deepseek-chat deepseek-reasoner)))
   (setq gptel-default-mode 'org-mode
-        gptel-use-curl nil
-        gptel-backend (cdr (assoc "Aliyun Bailian" gptel-backends)) ; 默认后端
-        gptel-model 'deepseek-v3.2)                                    ; 默认模型
+        gptel-use-curl nil)
   :bind (("C-c C-<return>" . gptel-menu)
          ("C-c <return>" . gptel-send)
          ("C-c C-g" . gptel-abort)

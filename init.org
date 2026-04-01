@@ -116,6 +116,9 @@
         ;; Disable post-startup statistics to reduce overhead.
         use-package-compute-statistics nil))
 #+END_SRC
+
+#+RESULTS:
+
 ** 内置行为与基础设置
 *** 核心设置
 #+begin_src emacs-lisp
@@ -147,6 +150,12 @@
 ;; 24-hour clock in modeline ---------------------------------------------------
 (setq display-time-24hr-format t)
 
+(use-package tramp
+  :ensure nil
+  :custom
+  (tramp-terminal-type "tramp")
+  (tramp-default-method "ssh")
+  (tramp-verbose 6))
 
 ;; Garbage-Collection Magic Hack (gcmh) ---------------------------------------
 (use-package gcmh
@@ -2587,7 +2596,8 @@
   (setq python-shell-interpreter "python")  ; 这个可以保留，但 uv-mode 会按项目覆盖
   (with-eval-after-load 'eglot
     (add-to-list 'eglot-server-programs
-                 '((python-ts-mode python-mode) . ("ty" "server")))))
+                 '((python-mode python-ts-mode)
+                   "basedpyright-langserver" "--stdio"))))
 #+end_src
 *** Elisp配置
 #+BEGIN_SRC emacs-lisp
@@ -2756,13 +2766,24 @@
                                  'makefile-mode 'snippet-mode
                                  'ron-mode)
                           (eglot-ensure)))))
-  :init (setq eglot-autoshutdown t
-              eglot-send-changes-idle-time 0.5
-              eglot-extend-to-xref t
-              eglot-code-action-indications '(eldoc-hint)
-              eglot-events-buffer-config '(:size 0 :format full) ;; 取消 eglot log
-              eglot-ignored-server-capabilities '(:documentFormattingProvider
-                                                  :documentRangeFormattingProvider))
+  :custom
+  (jsonrpc-event-hook nil)
+  (fset #'jsonrpc--log-event #'ignore)
+  (eglot-autoshutdown t)
+  (eglot-sync-connect 1)
+  (eglot-extend-to-xref t)
+  (eglot-events-buffer-config '(:size 0 :format full))
+  (eglot-confirm-server-initiated-edits nil)
+  (eglot-code-action-indications '(eldoc-hint))
+  (eglot-ignored-server-capabilities
+   '(:colorProvider
+     :codeLensProvider
+     :foldingRangeProvider
+     :semanticTokensProvider
+     :documentHighlightProvider
+     :documentFormattingProvider
+     :documentRangeFormattingProvider
+     :documentOnTypeFormattingProvider))
   :bind (:map eglot-mode-map
          ("C-c l r" . eglot-rename)
          ("C-c l a" . eglot-code-actions)))
@@ -3173,7 +3194,7 @@
                  ;; 高亮当前行
                  (hl-line-mode 1)))))
 #+end_src
-*** Gptel
+*** GPTEL
 #+begin_src emacs-lisp
 (use-package epa-file
   :ensure nil  ;; Emacs 内置
